@@ -73,7 +73,7 @@ def _get_job_errors(job_dict):
     steps_errors = _get_job_steps_errors(job_dict['steps'])
     if len(steps_errors) > 0:
       for e in steps_errors:
-        errors.append('steps error: {0}'.format(e))
+        errors.append('steps -> {0}'.format(e))
 
   return errors
 
@@ -101,7 +101,7 @@ def _get_job_steps_errors(steps_dict):
     step_errors = _get_step_errors(step_dict, job_step_outputs)
     if len(step_errors) > 0:
       for e in step_errors:
-        errors.append('step {0} error: {1}'.format(i, e))
+        errors.append('step {0} -> {1}'.format(i, e))
     i+=1
   return errors
 
@@ -141,7 +141,8 @@ def _get_missing_step_outputs(contents, job_step_outputs):
   return missing
 
 
-def validate_workflow(w):
+def get_errors_from_workflow(w):
+  errors = []
   y = get_workflow_yaml_dict(w)
   job_names = y['jobs'].keys()
   # TODO: validate job names
@@ -149,7 +150,8 @@ def validate_workflow(w):
     job_errors = _get_job_errors(y['jobs'][job_name])
     if len(job_errors) > 0:
       for e in job_errors:
-        v_inf("workflow {0} job {1} error: {2}".format(w, job_name, e))
+        errors.append("job {0} -> {1}".format(job_name, e))
+  return errors
 
 
 def main():
@@ -166,7 +168,13 @@ def main():
   # TODO: validate workflow filenames
 
   for w in workflow_filenames:
-    validate_workflow(w)
+    workflow_errors = get_errors_from_workflow(w)
+    if len(workflow_errors) > 0:
+      for err in workflow_errors:
+        v_inf('workflow {0} -> {1}'.format(w, err))
+
+  # TODO: make script fail when there are any errors
+
 
 if __name__ == "__main__":
   main()
