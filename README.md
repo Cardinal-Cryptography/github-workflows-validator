@@ -10,7 +10,7 @@ Run the following command to build the image.
 ## Running
 
 ### Command-line
-Python 3 is required to run the script.  Replace path to the .github directory below.
+Python 3.7 or newer is required to run the script.  Replace path to the .github directory below.
 
     DOT_GITHUB_PATH=/Users/me/my-repo/.github python3 github-workflows-validator.py
 
