@@ -349,7 +349,17 @@ def main():
       for err in workflow_errors:
         print_warning('workflow {0} -> {1}'.format(w, err))
 
-  # TODO: make script fail when there are any errors
+  # TODO: when ${{ inputs.ref }} is used check if such input is defined
+  # TODO: when uses: ./.github/actions/name-of-action is used, check if such action exists
+  # TODO: when using local action - check if all required inputs are present (in the 'with' key)
+  # TODO: when external action is used:
+  #  - download https://github.com/OWNER/ACTION_NAME/blob/main/action.yml
+  #  - parse out all the inputs and check if any required are missing
+  # TODO: check if any id is not duplicated
+  # TODO: check if any _id is not duplicated (like job_id, not the field)
+  # TODO: validate field in 'env' blocks
+  # TODO: use ShellCheck to check bash blocks (replace with random string if necessary) or at least -n?
+  # TODO: check number of maximum lines
 
 
 if __name__ == "__main__":
