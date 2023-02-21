@@ -40,6 +40,9 @@ def exit_if_invalid_path():
 def is_lowercase_alphanumeric_with_hyphens(s):
   return re.match(r'^[a-z0-9][a-z0-9\-]+$', s)
 
+def is_uppercase_alphanumeric_with_underscores(s):
+  return re.match(r'^[A-Z][A-Z0-9_]+$', s)
+
 
 def append_error_if_dict_key_missing(dict, keys, errors, err_suffix = ''):
   for k in keys:
@@ -62,13 +65,21 @@ def append_error_if_dict_key_values_contains_string(dict, keys, string, errors):
   return errors
 
 
-def append_error_if_dict_keys_not_lowercase_alphanumeric_with_hyphens(dict, errors):
+def append_error_if_dict_keys_not_lowercase_alphanumeric_with_hyphens(dict, errors, err_suffix = ''):
   for k in dict.keys():
     if not is_lowercase_alphanumeric_with_hyphens(k):
-      errors.append("invalid field '{0}' - should be lowercase alphanumeric with hyphens".format(k))
+      errors.append("invalid field '{0}'{1} - should be lowercase alphanumeric with hyphens".format(k, err_suffix))
   return errors
 
-
+# This function matches any ${{ VAR_TYPE.* }} and checks if its name is correct.  It can be used for both
+# vars, secrets and env.
+def append_error_if_repo_var_not_uppercase_alphanumeric_with_underscore(s, types, errors):
+  for type in types:
+    names = re.findall(r"\${{[ ]*%s\.([a-zA-Z0-9\-_]+)[ ]*}}" % type, s, re.M)
+    for name in names:
+      if not is_uppercase_alphanumeric_with_underscores(name):
+        errors.append("invalid varname of '{0}.{1}' - should be uppercase alphanumeric with underscores".format(type, name))
+  return errors
 
 
 def get_action_dirnames():
@@ -87,15 +98,14 @@ def get_workflow_filenames():
   return [ f.name for f in os.scandir(workflows_path) if f.is_file() and (f.name.endswith('.yaml') or f.name.endswith('.yml')) ]
 
 
-def get_workflow_yaml_dict(w):
+def get_workflow_yaml(w):
   workflow_path = os.path.join(os.environ['DOT_GITHUB_PATH'], 'workflows', w)
   f = open(workflow_path)
   c = f.read()
   f.close()
-  return yaml.safe_load(c)
+  return c
 
-
-def get_action_yaml_dict(a):
+def get_action_yaml(a):
   action_yml = os.path.join(os.environ['DOT_GITHUB_PATH'], 'actions', a, 'action.yml')
   invalid_action_yaml = os.path.join(os.environ['DOT_GITHUB_PATH'], 'actions', a, 'action.yaml')
   action_yml_exists = os.path.isfile(action_yml)
@@ -110,7 +120,7 @@ def get_action_yaml_dict(a):
   f = open(action_yml)
   c = f.read()
   f.close()
-  return yaml.safe_load(c)
+  return c
 
 
 
@@ -172,6 +182,11 @@ def _get_step_errors(step_dict, job_step_outputs):
   # VALIDATION: if step 'id' exists, it should be lowercase alphanumeric with hyphens
   errors = append_error_if_dict_key_values_not_lowercase_alphanumeric_with_hyphens(step_dict, ['id'], errors)
 
+  # VALIDATION: 'name' must be the first field
+  # Requires >Python 3.7: https://mail.python.org/pipermail/python-dev/2017-December/151283.html
+  if list(step_dict.keys())[0] != 'name':
+    errors.append("first field must be 'name'")
+
   # VALIDATION: Calls in 'run' to non-existinging step outputs
   if 'run' in step_dict.keys():
     if isinstance(step_dict['run'], str):
@@ -206,11 +221,12 @@ def _get_missing_step_outputs(contents, job_step_outputs):
 
 def get_errors_from_workflow(w):
   errors = []
-  y = get_workflow_yaml_dict(w)
+  s = get_workflow_yaml(w)
+  y = yaml.safe_load(s)
 
   # VALIDATION: workflow must have a 'name'
   errors = append_error_if_dict_key_missing(y, ['name'], errors)
-  # VALIDATION: job name should be lowercase alphanumeric with 
+  # VALIDATION: job name should be lowercase alphanumeric with hyphens
   errors = append_error_if_dict_keys_not_lowercase_alphanumeric_with_hyphens(y['jobs'], errors)
   
   job_names = y['jobs'].keys()
@@ -224,14 +240,37 @@ def get_errors_from_workflow(w):
     if len(job_errors) > 0:
       for e in job_errors:
         errors.append("job {0} -> {1}".format(job_name, e))
+
+  # VALIDATION: vars, secrets and env vars must be uppercase ALPHANUMERIC with underscode
+  errors = append_error_if_repo_var_not_uppercase_alphanumeric_with_underscore(s, ['env', 'var', 'secrets'], errors)
+
   return errors
 
 
 def get_errors_from_action(a):
   errors = []
-  y = get_action_yaml_dict(a)
+  s = get_action_yaml(a)
+  y = yaml.safe_load(s)
+
   # VALIDATION: action must have 'name' and 'description' fields
   errors = append_error_if_dict_key_missing(y, ['name', 'description'], errors)
+  # VALIDATION: inputs and output must be lowercase alphanumeric with hyphens
+  if 'inputs' in y.keys():
+    errors = append_error_if_dict_keys_not_lowercase_alphanumeric_with_hyphens(y['inputs'], errors, " in 'inputs'")
+  if 'outputs' in y.keys():
+    errors = append_error_if_dict_keys_not_lowercase_alphanumeric_with_hyphens(y['outputs'], errors, " in 'outputs'")
+
+  # VALIDATION: inputs and outputs must have 'description' field
+  if 'inputs' in y.keys():
+    for i in y['inputs'].keys():
+      errors = append_error_if_dict_key_missing(y['inputs'][i], ['description'], errors, " in 'inputs.{0}'".format(i))
+  if 'outputs' in y.keys():
+    for o in y['outputs'].keys():
+      errors = append_error_if_dict_key_missing(y['outputs'][o], ['description'], errors, " in 'outputs.{0}'".format(o))
+
+  # VALIDATION: vars, secrets and env vars must be uppercase ALPHANUMERIC with underscores
+  errors = append_error_if_repo_var_not_uppercase_alphanumeric_with_underscore(s, ['env', 'var', 'secrets'], errors)
+
   return errors
 
 
@@ -270,7 +309,7 @@ def get_errors_from_workflow_filenames(filenames):
 
     # VALIDATION: workflow filename can start with underscore and then it should be lower case alphanumeric and hyphen only
     if not re.match(r'^[_]{0,1}[a-z0-9][a-z0-9\-]+\.yml$', f):
-      errors.append("invalid workflow filename '{0}' - should be '^[_]{{0,1}}[a-z0-9][a-z0-9\-]+\.yml$'".format(f))
+      errors.append("invalid workflow filename '{0}' - should be lower alphanumeric with hyphen, optionally starting with underscore when it is sub-workflow, and ending with .yml".format(f))
 
   return errors
 
