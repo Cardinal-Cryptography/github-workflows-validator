@@ -82,6 +82,14 @@ def append_error_if_repo_var_not_uppercase_alphanumeric_with_underscore(s, types
   return errors
 
 
+def append_error_if_repo_var_not_in_list(s, type, list, errors):
+  names = re.findall(r"\${{[ ]*%s\.([a-zA-Z0-9\-_]+)[ ]*}}" % type, s, re.M)
+  for name in names:
+    if name not in list:
+      errors.append("call to non-existing varname of '{0}.{1}'".format(type, name))
+  return errors
+
+
 def get_action_dirnames():
   actions_path = os.path.join(os.environ['DOT_GITHUB_PATH'], 'actions')
   if not os.path.isdir(actions_path):
@@ -222,6 +230,8 @@ def _get_missing_step_outputs(contents, job_step_outputs):
 def get_errors_from_workflow(w):
   errors = []
   s = get_workflow_yaml(w)
+  # 'on:' is replaced with 'True:' because PyYAML is stupid, hence we change it to 'real_on:'
+  s = re.sub('^on:.*$', 'real_on:', s, flags=re.MULTILINE)
   y = yaml.safe_load(s)
 
   # VALIDATION: workflow must have a 'name'
@@ -243,6 +253,12 @@ def get_errors_from_workflow(w):
 
   # VALIDATION: vars, secrets and env vars must be uppercase ALPHANUMERIC with underscode
   errors = append_error_if_repo_var_not_uppercase_alphanumeric_with_underscore(s, ['env', 'var', 'secrets'], errors)
+
+  # VALIDATION: call to non-existing inputs
+  input_names = list(y['real_on']['workflow_call']['inputs'].keys()) if 'workflow_call' in y['real_on'].keys() and y['real_on']['workflow_call'] is not None and 'inputs' in y['real_on']['workflow_call'].keys() else []
+  if 'workflow_dispatch' in y['real_on'].keys() and y['real_on']['workflow_dispatch'] is not None and 'inputs' in y['real_on']['workflow_dispatch'].keys():
+    input_names += list(y['real_on']['workflow_call']['inputs'].keys())
+  errors = append_error_if_repo_var_not_in_list(s, 'inputs', input_names, errors)
 
   return errors
 
@@ -270,6 +286,10 @@ def get_errors_from_action(a):
 
   # VALIDATION: vars, secrets and env vars must be uppercase ALPHANUMERIC with underscores
   errors = append_error_if_repo_var_not_uppercase_alphanumeric_with_underscore(s, ['env', 'var', 'secrets'], errors)
+
+  # VALIDATION: check if all called inputs exist
+  input_names = y['inputs'].keys() if 'inputs' in y.keys() else []
+  errors = append_error_if_repo_var_not_in_list(s, 'inputs', list(input_names), errors)
 
   return errors
 
