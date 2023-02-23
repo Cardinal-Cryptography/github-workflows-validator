@@ -82,7 +82,7 @@ def append_error_if_repo_var_not_uppercase_alphanumeric_with_underscore(s, types
   return errors
 
 
-def append_error_if_repo_var_not_in_list(s, type, list, errors):
+def append_error_if_var_not_in_list(s, type, list, errors):
   names = re.findall(r"\${{[ ]*%s\.([a-zA-Z0-9\-_]+)[ ]*}}" % type, s, re.M)
   for name in names:
     if name not in list:
@@ -90,11 +90,32 @@ def append_error_if_repo_var_not_in_list(s, type, list, errors):
   return errors
 
 
+def append_error_if_step_output_not_in_list(s, step_list, step_output_list, errors, err_suffix = ''):
+  var_steps_outputs = re.findall(r'\${{[ ]*steps\.([a-zA-Z0-9\-_]+)\.outputs\.([a-zA-Z0-9\-_]+)[ ]*}}', s, re.M)
+  for f in var_steps_outputs:
+    if f[0] not in step_list:
+      errors.append("call to missing step '{0}'{1}".format(f[0], err_suffix))
+    if '{0}.{1}'.format(f[0], f[1]) not in step_output_list and '{0}.*'.format(f[0]) not in step_output_list:
+      errors.append("call to missing step output (or deprecated method for setting output used) '{0}.{1}'{2}".format(f[0], f[1], err_suffix))
+  return errors
+
+
+def append_error_if_dict_steps_refer_nonexisting_local_action(dict, action_dirnames, errors):
+  if 'steps' in dict:
+    i = 0
+    for s in dict['steps']:
+      if 'uses' in s.keys() and s['uses'].startswith('./.github/'):
+        if not re.match(r'\.\/\.github\/actions\/[a-z0-9\-]+', s['uses']):
+          errors.append("step {0} -> invalid value for 'uses' referring local action".format(i))
+        if s['uses'] not in [ './.github/actions/{0}'.format(d) for d in action_dirnames ]:
+          errors.append("step {0} -> 'uses' references non-existing local action".format(i))
+      i += 1
+  return errors
+
 def get_action_dirnames():
   actions_path = os.path.join(os.environ['DOT_GITHUB_PATH'], 'actions')
   if not os.path.isdir(actions_path):
     return []
-
   return [ f.name for f in os.scandir(actions_path) if f.is_dir() ]
 
 
@@ -102,7 +123,6 @@ def get_workflow_filenames():
   workflows_path = os.path.join(os.environ['DOT_GITHUB_PATH'], 'workflows')
   if not os.path.isdir(workflows_path):
     return []
-
   return [ f.name for f in os.scandir(workflows_path) if f.is_file() and (f.name.endswith('.yaml') or f.name.endswith('.yml')) ]
 
 
@@ -112,6 +132,7 @@ def get_workflow_yaml(w):
   c = f.read()
   f.close()
   return c
+
 
 def get_action_yaml(a):
   action_yml = os.path.join(os.environ['DOT_GITHUB_PATH'], 'actions', a, 'action.yml')
@@ -133,7 +154,7 @@ def get_action_yaml(a):
 
 
 
-def _get_job_errors(job_dict):
+def _get_job_errors(job_dict, action_dirnames):
   errors = []
   # VALIDATION: step must have a 'name'
   errors = append_error_if_dict_key_missing(job_dict, ['name'], errors)
@@ -150,32 +171,30 @@ def _get_job_errors(job_dict):
     steps_errors = _get_job_steps_errors(job_dict['steps'])
     if len(steps_errors) > 0:
       for e in steps_errors:
-        errors.append('steps -> {0}'.format(e))
-
+        errors.append('{0}'.format(e))
+    
+    # VALIDATION: 'uses' in step must refer to existing action
+    errors = append_error_if_dict_steps_refer_nonexisting_local_action(job_dict, action_dirnames, errors)
   return errors
-
-
-def _get_job_step_outputs(steps_dict):
-  steps_outputs = {} 
-  for s in steps_dict:
-    if 'id' in s.keys():
-      steps_outputs[s['id']] = {}
-      # If step has id and it has 'run' key, we parse out the 'echo "name=.*" >> $GITHUB_OUTPUT' strings
-      if 'run' in s.keys():
-        steps_outputs[s['id']]['__run_found'] = True
-        github_outputs = re.findall(r'echo[ ]+["]{0,1}([a-zA-Z0-9\-_]+)=.*["]{0,1}[ ]+>>[ ]+\$GITHUB_OUTPUT', s['run'], re.M)
-        for o in github_outputs:
-          steps_outputs[s['id']][o] = True
-  return steps_outputs
 
 
 def _get_job_steps_errors(steps_dict):
   errors = []
-  job_step_outputs = _get_job_step_outputs(steps_dict)
+  #job_step_outputs = _get_job_step_outputs(steps_dict)
+
+  step_list = [ s['id'] for s in steps_dict if 'id' in s.keys() ]
+  step_output_list = []
+  for s in steps_dict:
+    if 'id' in s.keys():
+      if'run' in s.keys():
+        for o in re.findall(r'echo[ ]+["]{0,1}([a-zA-Z0-9\-_]+)=.*["]{0,1}[ ]+>>[ ]+\$GITHUB_OUTPUT', s['run'], re.M):
+          step_output_list.append('{0}.{1}'.format(s['id'], o))
+      else:
+        step_output_list.append('{0}.*'.format(s['id']))
 
   i = 0
   for step_dict in steps_dict:
-    step_errors = _get_step_errors(step_dict, job_step_outputs)
+    step_errors = _get_step_errors(step_dict, step_list, step_output_list)
     if len(step_errors) > 0:
       for e in step_errors:
         errors.append('step {0} -> {1}'.format(i, e))
@@ -183,7 +202,7 @@ def _get_job_steps_errors(steps_dict):
   return errors
 
 
-def _get_step_errors(step_dict, job_step_outputs):
+def _get_step_errors(step_dict, step_list, step_output_list):
   errors = []
   # VALIDATION: step must have a 'name'
   errors = append_error_if_dict_key_missing(step_dict, ['name'], errors)
@@ -198,36 +217,18 @@ def _get_step_errors(step_dict, job_step_outputs):
   # VALIDATION: Calls in 'run' to non-existinging step outputs
   if 'run' in step_dict.keys():
     if isinstance(step_dict['run'], str):
-      missing = _get_missing_step_outputs(step_dict['run'], job_step_outputs)
-      if len(missing) > 0:
-        for m in missing:
-          errors.append("call to missing step output {0} in 'run' (or deprecated method for setting output used)".format(m))
+      errors = append_error_if_step_output_not_in_list(step_dict['run'], step_list, step_output_list, errors, " in 'run'")
 
   # VALIDATION: Calls in 'env' or 'with' to non-existinging step outputs
   for key_to_check in ['env', 'with']:
     if key_to_check in step_dict.keys():
       for subkey in step_dict[key_to_check].keys():
         if isinstance(step_dict[key_to_check][subkey], str):
-          missing = _get_missing_step_outputs(step_dict[key_to_check][subkey], job_step_outputs)
-          if len(missing) > 0:
-            for m in missing:
-              errors.append("call to missing step output {0} in '{1}.{2}' (or deprecated method for setting output used)".format(m, key_to_check, subkey))
+          errors = append_error_if_step_output_not_in_list(step_dict[key_to_check][subkey], step_list, step_output_list, errors, " in '{0}.{1}'".format(key_to_check, subkey))
   return errors
 
 
-def _get_missing_step_outputs(contents, job_step_outputs):
-  missing = []
-  var_steps_outputs = re.findall(r'\${{[ ]*steps\.([a-zA-Z0-9\-_]+)\.outputs\.([a-zA-Z0-9\-_]+)[ ]*}}', contents, re.M)
-  for f in var_steps_outputs:
-    if f[0] not in job_step_outputs:
-      missing.append(f[0])
-      continue
-    if '__run_found' in job_step_outputs[f[0]] and f[1] not in job_step_outputs[f[0]]:
-      missing.append(f[0]+'.'+f[1])
-  return missing
-
-
-def get_errors_from_workflow(w):
+def get_errors_from_workflow(w, action_dirnames):
   errors = []
   s = get_workflow_yaml(w)
   # 'on:' is replaced with 'True:' because PyYAML is stupid, hence we change it to 'real_on:'
@@ -246,7 +247,7 @@ def get_errors_from_workflow(w):
 
   # Loop through jobs and validate them
   for job_name in job_names:
-    job_errors = _get_job_errors(y['jobs'][job_name])
+    job_errors = _get_job_errors(y['jobs'][job_name], action_dirnames)
     if len(job_errors) > 0:
       for e in job_errors:
         errors.append("job {0} -> {1}".format(job_name, e))
@@ -258,12 +259,12 @@ def get_errors_from_workflow(w):
   input_names = list(y['real_on']['workflow_call']['inputs'].keys()) if 'workflow_call' in y['real_on'].keys() and y['real_on']['workflow_call'] is not None and 'inputs' in y['real_on']['workflow_call'].keys() else []
   if 'workflow_dispatch' in y['real_on'].keys() and y['real_on']['workflow_dispatch'] is not None and 'inputs' in y['real_on']['workflow_dispatch'].keys():
     input_names += list(y['real_on']['workflow_call']['inputs'].keys())
-  errors = append_error_if_repo_var_not_in_list(s, 'inputs', input_names, errors)
+  errors = append_error_if_var_not_in_list(s, 'inputs', input_names, errors)
 
   return errors
 
 
-def get_errors_from_action(a):
+def get_errors_from_action(a, action_dirnames):
   errors = []
   s = get_action_yaml(a)
   y = yaml.safe_load(s)
@@ -289,7 +290,11 @@ def get_errors_from_action(a):
 
   # VALIDATION: check if all called inputs exist
   input_names = y['inputs'].keys() if 'inputs' in y.keys() else []
-  errors = append_error_if_repo_var_not_in_list(s, 'inputs', list(input_names), errors)
+  errors = append_error_if_var_not_in_list(s, 'inputs', list(input_names), errors)
+
+  # VALIDATION: 'uses' must refer to existing action
+  if 'runs' in y.keys():
+    errors = append_error_if_dict_steps_refer_nonexisting_local_action(y['runs'], action_dirnames, errors)
 
   return errors
 
@@ -357,20 +362,18 @@ def main():
 
   # Loop through actions and validate them
   for a in action_dirnames:
-    action_errors = get_errors_from_action(a)
+    action_errors = get_errors_from_action(a, action_dirnames)
     if len(action_errors) > 0:
       for err in action_errors:
         print_warning('action {0} -> {1}'.format(a, err))
   
   # Loop through workflows and validate them
   for w in workflow_filenames:
-    workflow_errors = get_errors_from_workflow(w)
+    workflow_errors = get_errors_from_workflow(w, action_dirnames)
     if len(workflow_errors) > 0:
       for err in workflow_errors:
         print_warning('workflow {0} -> {1}'.format(w, err))
 
-  # TODO: when ${{ inputs.ref }} is used check if such input is defined
-  # TODO: when uses: ./.github/actions/name-of-action is used, check if such action exists
   # TODO: when using local action - check if all required inputs are present (in the 'with' key)
   # TODO: when external action is used:
   #  - download https://github.com/OWNER/ACTION_NAME/blob/main/action.yml
