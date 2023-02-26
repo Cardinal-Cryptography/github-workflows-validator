@@ -4,6 +4,10 @@ import sys
 import os
 import yaml
 import re
+import requests
+
+
+cache_external_actions = {}
 
 
 def exit_with_error(s):
@@ -100,17 +104,55 @@ def append_error_if_step_output_not_in_list(s, step_list, step_output_list, erro
   return errors
 
 
-def append_error_if_dict_steps_refer_nonexisting_local_action(dict, action_dirnames, errors):
+def append_error_if_dict_steps_refer_nonexisting_local_action(dict, action_inputs_and_outputs, errors):
   if 'steps' in dict:
     i = 0
     for s in dict['steps']:
       if 'uses' in s.keys() and s['uses'].startswith('./.github/'):
+        # VALIDATION: check if local action exists
         if not re.match(r'\.\/\.github\/actions\/[a-z0-9\-]+', s['uses']):
-          errors.append("step {0} -> invalid value for 'uses' referring local action".format(i))
-        if s['uses'] not in [ './.github/actions/{0}'.format(d) for d in action_dirnames ]:
-          errors.append("step {0} -> 'uses' references non-existing local action".format(i))
+          errors.append("step {0} -> invalid value for 'uses' referring local action '{1}'".format(i, s['uses']))
+        if s['uses'] not in [ './.github/actions/{0}'.format(d) for d in list(action_inputs_and_outputs.keys()) ]:
+          errors.append("step {0} -> 'uses' references non-existing local action '{1}'".format(i, s['uses']))
+          continue
+        action_name = s['uses'].replace('./.github/actions/','')
+        # VALIDATION: check if all required fields are passed
+        for required_field in action_inputs_and_outputs[action_name]['inputs']['required']:
+          if 'with' not in s or required_field not in s['with']:
+            errors.append("step {0} -> required field '{1}' missing for action '{2}".format(i, required_field, action_name))
+        # VALIDATION: check if all passed fields are valid
+        if 'with' in s:
+          for uses_field in s['with']:
+            if uses_field not in action_inputs_and_outputs[action_name]['inputs']['required'] and uses_field not in action_inputs_and_outputs[action_name]['inputs']['optional']:
+              errors.append("step {0} -> field '{1}' cannot be found in inputs of action '{2}'".format(i, uses_field, action_name))
       i += 1
   return errors
+
+
+def append_error_if_dict_steps_refer_nonexisting_external_action(dict, errors):
+  if 'steps' in dict:
+    i = 0
+    for s in dict['steps']:
+      if 'uses' in s.keys() and re.match(r'[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_]+@[a-zA-Z0-9\-_]+', s['uses']):
+        # VALIDATION: check if external action exists by taking the name and trying to download the action yaml file
+        inputs_and_outputs = get_external_action_inputs_and_outputs(s['uses'])
+        if s['uses'] not in inputs_and_outputs:
+          errors.append("step {0} -> 'uses' references non-existing external action '{1}'".format(i, s['uses']))
+
+        action_name = s['uses']
+        # VALIDATION: check if all required fields are passed
+        for required_field in inputs_and_outputs[action_name]['inputs']['required']:
+          if 'with' not in s or required_field not in s['with']:
+            errors.append("step {0} -> required field '{1}' missing for action '{2}".format(i, required_field, action_name))
+        # VALIDATION: check if all passed fields are valid
+        if 'with' in s:
+          for uses_field in s['with']:
+            if uses_field not in inputs_and_outputs[action_name]['inputs']['required'] and uses_field not in inputs_and_outputs[action_name]['inputs']['optional']:
+              errors.append("step {0} -> field '{1}' cannot be found in inputs of action '{2}'".format(i, uses_field, action_name))
+      i += 1
+
+  return errors
+
 
 def get_action_dirnames():
   actions_path = os.path.join(os.environ['DOT_GITHUB_PATH'], 'actions')
@@ -152,9 +194,43 @@ def get_action_yaml(a):
   return c
 
 
+def get_external_action_yaml(path):
+  [repo, version] = path.split('@')
+
+  if repo in cache_external_actions.keys():
+    print_info("Found external action '{0}' in already downloaded actions".format(repo))
+    return cache_external_actions[repo]
+
+  action_prefix = "https://raw.githubusercontent.com/{0}/{1}".format(repo, version)
+  c = ''
+  resp = requests.get(action_prefix+'/action.yml')
+  if resp.status_code == 200:
+    c = resp.text
+    print_info("Downloaded external action from {0}".format(action_prefix+'/action.yml'))
+  else:
+    resp = requests.get(action_prefix+'/action.yaml')
+    if resp.status_code == 200:
+      c = resp.text
+      print_info("Downloaded external action from {0}".format(action_prefix+'/action.yaml'))
+  if c == '':
+    print_warning("neither action.yml nor action.yaml found at {0}".format(action_prefix))
+  else:
+    cache_external_actions[repo] = c
+  return c
 
 
-def _get_job_errors(job_dict, action_dirnames):
+def get_external_action_inputs_and_outputs(path):
+  c = get_external_action_yaml(path)
+  if c == '':
+    return {}
+
+  actions_with_ios = {}
+  y = yaml.safe_load(c)
+  actions_with_ios = append_action_inputs_and_outputs(actions_with_ios, path, y)
+  return actions_with_ios
+
+  
+def _get_job_errors(job_dict, action_inputs_and_outputs):
   errors = []
   # VALIDATION: step must have a 'name'
   errors = append_error_if_dict_key_missing(job_dict, ['name'], errors)
@@ -173,8 +249,10 @@ def _get_job_errors(job_dict, action_dirnames):
       for e in steps_errors:
         errors.append('{0}'.format(e))
     
-    # VALIDATION: 'uses' in step must refer to existing action
-    errors = append_error_if_dict_steps_refer_nonexisting_local_action(job_dict, action_dirnames, errors)
+    # VALIDATION: 'uses' in step must refer to existing action and have required fields
+    errors = append_error_if_dict_steps_refer_nonexisting_local_action(job_dict, action_inputs_and_outputs, errors)
+    # VALIDATION: 'uses' in step must refer to existing external action and have required fields
+    errors = append_error_if_dict_steps_refer_nonexisting_external_action(job_dict, errors)
   return errors
 
 
@@ -228,7 +306,7 @@ def _get_step_errors(step_dict, step_list, step_output_list):
   return errors
 
 
-def get_errors_from_workflow(w, action_dirnames):
+def get_errors_from_workflow(w, action_inputs_and_outputs):
   errors = []
   s = get_workflow_yaml(w)
   # 'on:' is replaced with 'True:' because PyYAML is stupid, hence we change it to 'real_on:'
@@ -247,7 +325,7 @@ def get_errors_from_workflow(w, action_dirnames):
 
   # Loop through jobs and validate them
   for job_name in job_names:
-    job_errors = _get_job_errors(y['jobs'][job_name], action_dirnames)
+    job_errors = _get_job_errors(y['jobs'][job_name], action_inputs_and_outputs)
     if len(job_errors) > 0:
       for e in job_errors:
         errors.append("job {0} -> {1}".format(job_name, e))
@@ -264,7 +342,36 @@ def get_errors_from_workflow(w, action_dirnames):
   return errors
 
 
-def get_errors_from_action(a, action_dirnames):
+def append_action_inputs_and_outputs(append_to, action_name, action_dict):
+  append_to[action_name] = {
+    'inputs': {
+      'required': [],
+      'optional': []
+    },
+    'outputs': []
+  }
+  if 'inputs' in action_dict.keys():
+    for k, v in action_dict['inputs'].items():
+      if 'required' in v and (v['required'] == True or v['required'] == 'true'):
+        append_to[action_name]['inputs']['required'].append(k)
+      else:
+        append_to[action_name]['inputs']['optional'].append(k)
+  if 'outputs' in action_dict.keys():
+    for k in action_dict['outputs'].keys():
+      append_to[action_name]['outputs'].append(k)
+  return append_to
+
+
+def get_action_inputs_and_outputs(dirnames):
+  actions_with_ios = {}
+  for a in dirnames:
+    s = get_action_yaml(a)
+    y = yaml.safe_load(s)
+    actions_with_ios = append_action_inputs_and_outputs(actions_with_ios, a, y)
+  return actions_with_ios
+
+
+def get_errors_from_action(a, action_inputs_and_outputs):
   errors = []
   s = get_action_yaml(a)
   y = yaml.safe_load(s)
@@ -294,7 +401,7 @@ def get_errors_from_action(a, action_dirnames):
 
   # VALIDATION: 'uses' must refer to existing action
   if 'runs' in y.keys():
-    errors = append_error_if_dict_steps_refer_nonexisting_local_action(y['runs'], action_dirnames, errors)
+    errors = append_error_if_dict_steps_refer_nonexisting_local_action(y['runs'], action_inputs_and_outputs, errors)
 
   return errors
 
@@ -344,6 +451,7 @@ def main():
   exit_if_invalid_path()
 
   action_dirnames = get_action_dirnames()
+  action_inputs_and_outputs = get_action_inputs_and_outputs(action_dirnames)
   workflow_filenames = get_workflow_filenames()
   print_info('Found action dirnames: ' + ', '.join(action_dirnames))
   print_info('Found workflow filenames: ' + ', '.join(workflow_filenames))
@@ -362,22 +470,18 @@ def main():
 
   # Loop through actions and validate them
   for a in action_dirnames:
-    action_errors = get_errors_from_action(a, action_dirnames)
+    action_errors = get_errors_from_action(a, action_inputs_and_outputs)
     if len(action_errors) > 0:
       for err in action_errors:
         print_warning('action {0} -> {1}'.format(a, err))
   
   # Loop through workflows and validate them
   for w in workflow_filenames:
-    workflow_errors = get_errors_from_workflow(w, action_dirnames)
+    workflow_errors = get_errors_from_workflow(w, action_inputs_and_outputs)
     if len(workflow_errors) > 0:
       for err in workflow_errors:
         print_warning('workflow {0} -> {1}'.format(w, err))
 
-  # TODO: when using local action - check if all required inputs are present (in the 'with' key)
-  # TODO: when external action is used:
-  #  - download https://github.com/OWNER/ACTION_NAME/blob/main/action.yml
-  #  - parse out all the inputs and check if any required are missing
   # TODO: check if any id is not duplicated
   # TODO: check if any _id is not duplicated (like job_id, not the field)
   # TODO: validate field in 'env' blocks
