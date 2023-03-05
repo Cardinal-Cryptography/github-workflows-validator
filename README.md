@@ -23,3 +23,6 @@ Replace path to the .github directory.
       -e DOT_GITHUB_PATH=/dot-github \
       github-workflows-validator
 
+## Linting
+
+Use `pylint` and `flake8` to check the code.
