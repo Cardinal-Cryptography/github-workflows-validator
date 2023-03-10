@@ -20,14 +20,16 @@ type Action struct {
 	Runs        *ActionRuns              `yaml:"runs"`
 }
 
-func (a *Action) Init() error {
-	fmt.Fprintf(os.Stdout, "**** Reading %s ...\n", a.Path)
-	b, err := ioutil.ReadFile(a.Path)
-	if err != nil {
-		return fmt.Errorf("Cannot read file %s: %w", a.Path, err)
+func (a *Action) Init(fromRaw bool) error {
+	if !fromRaw {
+		fmt.Fprintf(os.Stdout, "**** Reading %s ...\n", a.Path)
+		b, err := ioutil.ReadFile(a.Path)
+		if err != nil {
+			return fmt.Errorf("Cannot read file %s: %w", a.Path, err)
+		}
+		a.Raw = b
 	}
-	a.Raw = b
-	err = yaml.Unmarshal(b, &a)
+	err := yaml.Unmarshal(a.Raw, &a)
 	if err != nil {
 		return fmt.Errorf("Cannot unmarshal file %s: %w", a.Path, err)
 	}
@@ -118,7 +120,6 @@ func (a *Action) Validate(d *DotGithub) ([]string, error) {
 func (a *Action) formatError(code string, desc string, name string) string {
 	return fmt.Sprintf("%s: %-40s %s (%s)", code, "action "+a.DirName, desc, name)
 }
-
 
 func (a *Action) validateDirName() (string, error) {
 	m, err := regexp.MatchString(`^[a-z0-9][a-z0-9\-]+$`, a.DirName)

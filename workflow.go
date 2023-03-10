@@ -4,14 +4,14 @@ import (
 	"fmt"
 	_ "gopkg.in/yaml.v2"
 	"os"
-	"strings"
 	"regexp"
+	"strings"
 )
 
 type Workflow struct {
-	Path string
+	Path     string
 	FileName string
-	Name string
+	Name     string
 }
 
 func (w *Workflow) Init() error {

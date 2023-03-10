@@ -1,16 +1,21 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 type DotGithub struct {
-	Path      string
-	Actions   map[string]*Action
-	Workflows map[string]*Workflow
+	Path            string
+	Actions         map[string]*Action
+	ExternalActions map[string]*Action
+	Workflows       map[string]*Workflow
 }
 
 func (d *DotGithub) InitFiles() error {
@@ -22,7 +27,7 @@ func (d *DotGithub) InitFiles() error {
 	d.getWorkflows()
 
 	for _, a := range d.Actions {
-		err := a.Init()
+		err := a.Init(false)
 		if err != nil {
 			return err
 		}
@@ -34,6 +39,54 @@ func (d *DotGithub) InitFiles() error {
 		}
 	}
 
+	return nil
+}
+
+func (d *DotGithub) DownloadExternalAction(path string) error {
+	if d.ExternalActions == nil {
+		d.ExternalActions = map[string]*Action{}
+	}
+	if d.ExternalActions[path] != nil {
+		return nil
+	}
+	repoVersion := strings.Split(path, "@")
+	actionURLPrefix := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s", repoVersion[0], repoVersion[1])
+
+	req, err := http.NewRequest("GET", actionURLPrefix+"/action.yml", strings.NewReader(""))
+	if err != nil {
+		return err
+	}
+	c := &http.Client{}
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		req, err = http.NewRequest("GET", actionURLPrefix+"/action.yaml", strings.NewReader(""))
+		if err != nil {
+			return err
+		}
+		resp, err = c.Do(req)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != 200 {
+			return nil
+		}
+	}
+	defer resp.Body.Close()
+	b, _ := ioutil.ReadAll(resp.Body)
+
+	d.ExternalActions[path] = &Action{
+		Path:    path,
+		DirName: "",
+		Raw:     b,
+	}
+	err = d.ExternalActions[path].Init(true)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
