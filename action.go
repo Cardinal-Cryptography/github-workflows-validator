@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
-	"strconv"
 )
 
 type Action struct {
@@ -95,6 +94,16 @@ func (a *Action) Validate(d *DotGithub) ([]string, error) {
 	}
 
 	verrs, err = a.validateCalledInputs()
+	if err != nil {
+		return validationErrors, err
+	}
+	if len(verrs) > 0 {
+		for _, verr := range verrs {
+			validationErrors = append(validationErrors, verr)
+		}
+	}
+
+	verrs, err = a.validateCalledStepOutputs()
 	if err != nil {
 		return validationErrors, err
 	}
@@ -221,18 +230,32 @@ func (a *Action) validateCalledInputs() ([]string, error) {
 	return validationErrors, nil
 }
 
+func (a *Action) validateCalledStepOutputs() ([]string, error) {
+	var validationErrors []string
+	re := regexp.MustCompile(fmt.Sprintf("\\${{[ ]*steps\\.([a-zA-Z0-9\\-_]+)\\.outputs\\.[a-zA-Z0-9\\-_]+[ ]*}}"))
+	found := re.FindAllSubmatch(a.Raw, -1)
+	for _, f := range found {
+		if a.Runs == nil {
+			validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "called-step-missing"))
+		} else {
+			if !a.Runs.IsStepExist(string(f[1])) {
+				validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "called-step-missing"))
+			}
+		}
+	}
+	return validationErrors, nil
+}
+
 func (a *Action) validateSteps(d *DotGithub) ([]string, error) {
 	var validationErrors []string
-	if a.Runs != nil && a.Runs.Steps != nil {
-		for i, s := range a.Runs.Steps {
-			verrs, err := s.Validate(a.DirName, strconv.Itoa(i), d)
-			if err != nil {
-				return validationErrors, err
-			}
-			if len(verrs) > 0 {
-				for _, verr := range verrs {
-					validationErrors = append(validationErrors, verr)
-				}
+	if a.Runs != nil {
+		verrs, err := a.Runs.Validate(a.DirName, d)
+		if err != nil {
+			return validationErrors, err
+		}
+		if len(verrs) > 0 {
+			for _, verr := range verrs {
+				validationErrors = append(validationErrors, verr)
 			}
 		}
 	}

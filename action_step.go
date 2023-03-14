@@ -18,33 +18,59 @@ type ActionStep struct {
 
 func (as *ActionStep) Validate(action string, name string, d *DotGithub) ([]string, error) {
 	var validationErrors []string
-	if as.Uses != "" {
-		if strings.HasPrefix(as.Uses, "./.github/") {
-			verrs, err := as.validateUsesLocalAction(action, name, as.Uses, d)
+	verrs, err := as.validateUses(action, name, as.Uses, d)
+	if err != nil {
+		return validationErrors, err
+	}
+	if len(verrs) > 0 {
+		for _, verr := range verrs {
+			validationErrors = append(validationErrors, verr)
+		}
+	}
+
+	verrs, err = as.validateCalledStepOutputs(action, name, as.Uses, d)
+	if err != nil {
+		return validationErrors, err
+	}
+	if len(verrs) > 0 {
+		for _, verr := range verrs {
+			validationErrors = append(validationErrors, verr)
+		}
+	}
+	return validationErrors, nil
+}
+
+func (as *ActionStep) validateUses(action string, name string, uses string, d *DotGithub) ([]string, error) {
+	var validationErrors []string
+	if uses == "" {
+		return validationErrors, nil
+	}
+
+	if strings.HasPrefix(as.Uses, "./.github/") {
+		verrs, err := as.validateUsesLocalAction(action, name, as.Uses, d)
+		if err != nil {
+			return validationErrors, err
+		}
+		if len(verrs) > 0 {
+			for _, verr := range verrs {
+				validationErrors = append(validationErrors, verr)
+			}
+		}
+	} else {
+		m, err := regexp.MatchString(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`, as.Uses)
+		if err != nil {
+			return validationErrors, err
+		}
+		if !m {
+			validationErrors = append(validationErrors, as.formatError(action, name, "EA113", fmt.Sprintf("Path to external action '%s' is invalid", as.Uses), "action-step-uses-invalid-external-path"))
+		} else {
+			verrs, err := as.validateUsesExternalAction(action, name, as.Uses, d)
 			if err != nil {
 				return validationErrors, err
 			}
 			if len(verrs) > 0 {
 				for _, verr := range verrs {
 					validationErrors = append(validationErrors, verr)
-				}
-			}
-		} else {
-			m, err := regexp.MatchString(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`, as.Uses)
-			if err != nil {
-				return validationErrors, err
-			}
-			if !m {
-				validationErrors = append(validationErrors, as.formatError(action, name, "EA113", fmt.Sprintf("Path to external action '%s' is invalid", as.Uses), "action-step-uses-invalid-external-path"))
-			} else {
-				verrs, err := as.validateUsesExternalAction(action, name, as.Uses, d)
-				if err != nil {
-					return validationErrors, err
-				}
-				if len(verrs) > 0 {
-					for _, verr := range verrs {
-						validationErrors = append(validationErrors, verr)
-					}
 				}
 			}
 		}
@@ -117,6 +143,29 @@ func (as *ActionStep) validateUsesExternalAction(action string, step string, use
 	return validationErrors, nil
 }
 
-func (as *ActionStep) formatError(action, step string, code string, desc string, name string) string {
+func (as *ActionStep) validateCalledStepOutputs(action string, step string, uses string, d *DotGithub) ([]string, error) {
+	var validationErrors []string
+	if as.Run == "" {
+		return validationErrors, nil
+	}
+	re := regexp.MustCompile(fmt.Sprintf("\\${{[ ]*steps\\.([a-zA-Z0-9\\-_]+)\\.outputs\\.([a-zA-Z0-9\\-_]+)[ ]*}}"))
+	found := re.FindAllSubmatch([]byte(as.Run), -1)
+	for _, f := range found {
+		if d.Actions[action].Runs == nil {
+			validationErrors = append(validationErrors, as.formatError(action, step, "EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "called-step-missing"))
+			continue
+		}
+
+		found := d.Actions[action].Runs.IsStepOutputExist(string(f[1]), string(f[2]), d)
+		if found == -1 {
+			validationErrors = append(validationErrors, as.formatError(action, step, "EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "called-step-missing"))
+		} else if found == -2 {
+			validationErrors = append(validationErrors, as.formatError(action, step, "EA119", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]), string(f[2])), "called-step-output-missing"))
+		}
+	}
+	return validationErrors, nil
+}
+
+func (as *ActionStep) formatError(action string, step string, code string, desc string, name string) string {
 	return fmt.Sprintf("%s: %-60s %s (%s)", code, "action "+action+" step "+step, desc, name)
 }
