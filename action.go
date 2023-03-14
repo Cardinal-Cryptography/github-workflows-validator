@@ -32,6 +32,9 @@ func (a *Action) Init(fromRaw bool) error {
 	if err != nil {
 		return fmt.Errorf("Cannot unmarshal file %s: %w", a.Path, err)
 	}
+	if a.Runs != nil {
+		a.Runs.SetParentType("action")
+	}
 	return nil
 }
 

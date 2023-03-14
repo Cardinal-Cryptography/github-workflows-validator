@@ -182,7 +182,7 @@ func (d *DotGithub) validateActions() ([]string, error) {
 func (d *DotGithub) validateWorkflows() ([]string, error) {
 	var validationErrors []string
 	for _, w := range d.Workflows {
-		verrs, err := w.Validate()
+		verrs, err := w.Validate(d)
 		if err != nil {
 			return validationErrors, err
 		}

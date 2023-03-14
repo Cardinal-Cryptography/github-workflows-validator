@@ -11,6 +11,12 @@ type ActionRuns struct {
 	Steps []*ActionStep `yaml:"steps"`
 }
 
+func (ar *ActionRuns) SetParentType(t string) {
+	for _, s := range ar.Steps {
+		s.ParentType = t
+	}
+}
+
 func (ar *ActionRuns) IsStepExist(id string) bool {
 	for _, s := range ar.Steps {
 		if s.Id == id {

@@ -7,6 +7,7 @@ import (
 )
 
 type ActionStep struct {
+	ParentType string
 	Name  string            `yaml:"name"`
 	Id    string            `yaml:"id"`
 	Uses  string            `yaml:"uses"`
