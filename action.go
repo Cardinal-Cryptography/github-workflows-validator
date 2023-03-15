@@ -227,7 +227,7 @@ func (a *Action) validateCalledInputs() ([]string, error) {
 	found := re.FindAllSubmatch(a.Raw, -1)
 	for _, f := range found {
 		if a.Inputs == nil || a.Inputs[string(f[1])] == nil {
-			validationErrors = append(validationErrors, a.formatError("EA110", fmt.Sprintf("Called input '%s' does not exist", string(f[1])), "called-input-missing"))
+			validationErrors = append(validationErrors, a.formatError("EA110", fmt.Sprintf("Called input '%s' does not exist", string(f[1])), "action-called-input-missing"))
 		}
 	}
 	return validationErrors, nil
@@ -239,10 +239,10 @@ func (a *Action) validateCalledStepOutputs() ([]string, error) {
 	found := re.FindAllSubmatch(a.Raw, -1)
 	for _, f := range found {
 		if a.Runs == nil {
-			validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "called-step-missing"))
+			validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "action-called-step-missing"))
 		} else {
 			if !a.Runs.IsStepExist(string(f[1])) {
-				validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "called-step-missing"))
+				validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "action-called-step-missing"))
 			}
 		}
 	}

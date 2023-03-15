@@ -77,7 +77,7 @@ func (ar *ActionRuns) Validate(dirName string, d *DotGithub) ([]string, error) {
 	var validationErrors []string
 	if ar.Steps != nil {
 		for i, s := range ar.Steps {
-			verrs, err := s.Validate(dirName, strconv.Itoa(i), d)
+			verrs, err := s.Validate(dirName, "", strconv.Itoa(i), d)
 			if err != nil {
 				return validationErrors, err
 			}
