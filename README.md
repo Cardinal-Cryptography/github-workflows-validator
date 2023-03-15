@@ -1,4 +1,4 @@
-# docker-github-workflows-validator
+# github-workflows-validator
 Quick tool to validate workflows and action in .github directory
 
 ## Building
