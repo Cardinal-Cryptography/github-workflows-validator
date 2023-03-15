@@ -3,20 +3,21 @@ package main
 import (
 	"fmt"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
-	"io/ioutil"
 )
 
 type Workflow struct {
-	Path     string
-	Raw      []byte
-	FileName string
-	Name     string `yaml:"name"`
-	Description string `yaml:"description"`
-	Jobs map[string]*WorkflowJob `yaml:"jobs"`
-	On *WorkflowOn `yaml:"on"`
+	Path        string
+	Raw         []byte
+	FileName    string
+	Name        string                  `yaml:"name"`
+	Description string                  `yaml:"description"`
+	Env         map[string]string       `yaml:"env"`
+	Jobs        map[string]*WorkflowJob `yaml:"jobs"`
+	On          *WorkflowOn             `yaml:"on"`
 }
 
 func (w *Workflow) Init() error {
@@ -54,7 +55,17 @@ func (w *Workflow) Validate(d *DotGithub) ([]string, error) {
 		validationErrors = append(validationErrors, verr)
 	}
 
-	verrs, err := w.validateMissingFields()
+	verrs, err := w.validateEnv()
+	if err != nil {
+		return validationErrors, err
+	}
+	if len(verrs) > 0 {
+		for _, verr := range verrs {
+			validationErrors = append(validationErrors, verr)
+		}
+	}
+
+	verrs, err = w.validateMissingFields()
 	if err != nil {
 		return validationErrors, err
 	}
@@ -128,6 +139,22 @@ func (w *Workflow) validateFileName() (string, error) {
 		return w.formatError("EW102", "Workflow file name should have .yml extension", "workflow-filename-yml-extension"), nil
 	}
 	return "", nil
+}
+
+func (w *Workflow) validateEnv() ([]string, error) {
+	var validationErrors []string
+	if w.Env != nil {
+		for envName, _ := range w.Env {
+			m, err := regexp.MatchString(`^[A-Z][A-Z0-9_]+$`, envName)
+			if err != nil {
+				return validationErrors, err
+			}
+			if !m {
+				validationErrors = append(validationErrors, w.formatError("EW121", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "workflow-env-variable-uppercase-alphanumeric-and-underscore"))
+			}
+		}
+	}
+	return validationErrors, nil
 }
 
 func (w *Workflow) validateMissingFields() ([]string, error) {

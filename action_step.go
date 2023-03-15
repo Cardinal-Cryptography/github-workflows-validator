@@ -8,18 +8,28 @@ import (
 
 type ActionStep struct {
 	ParentType string
-	Name  string            `yaml:"name"`
-	Id    string            `yaml:"id"`
-	Uses  string            `yaml:"uses"`
-	Shell string            `yaml:"bash"`
-	Env   map[string]string `yaml:"env"`
-	Run   string            `yaml:"run"`
-	With  map[string]string `yaml:"with"`
+	Name       string            `yaml:"name"`
+	Id         string            `yaml:"id"`
+	Uses       string            `yaml:"uses"`
+	Shell      string            `yaml:"bash"`
+	Env        map[string]string `yaml:"env"`
+	Run        string            `yaml:"run"`
+	With       map[string]string `yaml:"with"`
 }
 
 func (as *ActionStep) Validate(action string, workflowJob string, name string, d *DotGithub) ([]string, error) {
 	var validationErrors []string
 	verrs, err := as.validateUses(action, workflowJob, name, as.Uses, d)
+	if err != nil {
+		return validationErrors, err
+	}
+	if len(verrs) > 0 {
+		for _, verr := range verrs {
+			validationErrors = append(validationErrors, verr)
+		}
+	}
+
+	verrs, err = as.validateEnv(action, workflowJob, name)
 	if err != nil {
 		return validationErrors, err
 	}
@@ -173,6 +183,26 @@ func (as *ActionStep) validateUsesExternalAction(action string, workflowJob stri
 		}
 	}
 
+	return validationErrors, nil
+}
+
+func (as *ActionStep) validateEnv(action string, workflowJob string, step string) ([]string, error) {
+	var validationErrors []string
+	if as.Env != nil {
+		for envName, _ := range as.Env {
+			m, err := regexp.MatchString(`^[A-Z][A-Z0-9_]+$`, envName)
+			if err != nil {
+				return validationErrors, err
+			}
+			if !m {
+				if as.ParentType == "workflow" {
+					validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW122", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "workflow-job-step-env-variable-uppercase-alphanumeric-and-underscore"))
+				} else {
+					validationErrors = append(validationErrors, as.formatError(action, step, "EA122", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "action-step-env-variable-uppercase-alphanumeric-and-underscore"))
+				}
+			}
+		}
+	}
 	return validationErrors, nil
 }
 

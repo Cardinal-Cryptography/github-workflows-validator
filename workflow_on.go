@@ -1,7 +1,7 @@
 package main
 
 type WorkflowOn struct {
-	WorkflowCall *WorkflowCall `yaml:"workflow_call"`
+	WorkflowCall     *WorkflowCall     `yaml:"workflow_call"`
 	WorkflowDispatch *WorkflowDispatch `yaml:"workflow_dispatch"`
 }
 
@@ -31,4 +31,3 @@ func (wo *WorkflowOn) Validate(workflow string) ([]string, error) {
 	}
 	return validationErrors, nil
 }
-

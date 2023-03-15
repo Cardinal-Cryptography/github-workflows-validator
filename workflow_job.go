@@ -1,18 +1,18 @@
 package main
 
 import (
-	"regexp"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 type WorkflowJob struct {
-	Name string `yaml:"name"`
-	Uses string `yaml:"uses"`
-	RunsOn string `yaml:"runs-on"`
-	Steps []*ActionStep `yaml:"steps"`
-	Env map[string]string `yaml:"env"`
+	Name   string            `yaml:"name"`
+	Uses   string            `yaml:"uses"`
+	RunsOn string            `yaml:"runs-on"`
+	Steps  []*ActionStep     `yaml:"steps"`
+	Env    map[string]string `yaml:"env"`
 }
 
 func (wj *WorkflowJob) SetParentType(t string) {
@@ -38,7 +38,17 @@ func (wj *WorkflowJob) Validate(workflow string, job string, d *DotGithub) ([]st
 		validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW120", "Workflow job should not have 'latest' in 'runs-on'", "workflow-job-latest-in-runs-on"))
 	}
 
-	verrs, err := wj.validateSteps(workflow, job, d)
+	verrs, err := wj.validateEnv(workflow, job)
+	if err != nil {
+		return validationErrors, err
+	}
+	if len(verrs) > 0 {
+		for _, verr := range verrs {
+			validationErrors = append(validationErrors, verr)
+		}
+	}
+
+	verrs, err = wj.validateSteps(workflow, job, d)
 	if err != nil {
 		return validationErrors, err
 	}
@@ -59,6 +69,22 @@ func (wj *WorkflowJob) validateName(workflow string, job string, d *DotGithub) (
 		return wj.formatError(workflow, job, "EW105", "Workflow job name should contain lowercase alphanumeric characters and hyphens only", "workflow-job-lowercase-alphanumeric-and-hyphens"), nil
 	}
 	return "", nil
+}
+
+func (wj *WorkflowJob) validateEnv(workflow string, job string) ([]string, error) {
+	var validationErrors []string
+	if wj.Env != nil {
+		for envName, _ := range wj.Env {
+			m, err := regexp.MatchString(`^[A-Z][A-Z0-9_]+$`, envName)
+			if err != nil {
+				return validationErrors, err
+			}
+			if !m {
+				validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW122", fmt.Sprintf(workflow, job, "Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "workflow-job-env-variable-uppercase-alphanumeric-and-underscore"))
+			}
+		}
+	}
+	return validationErrors, nil
 }
 
 func (wj *WorkflowJob) formatError(workflow string, job string, code string, desc string, name string) string {

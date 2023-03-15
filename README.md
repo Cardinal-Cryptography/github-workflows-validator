@@ -41,9 +41,4 @@ the output for errors.
 
 ## TODO
 
-* action - validate env
-* action - validate env in steps
-* workflow - validate env
-* workflow job - validate env
-* workflow job step - validate env
 * workflow jobs - validate needs
