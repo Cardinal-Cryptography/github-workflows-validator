@@ -1,10 +1,17 @@
-FROM python:3.11.2-slim-bullseye
+FROM golang:alpine AS builder
+LABEL maintainer="Mikolaj Gasior"
 
-RUN pip install PyYAML
+RUN apk add --update git bash openssh make gcc musl-dev
 
-COPY github-workflows-validator.py /docker-entrypoint.py
-RUN chmod +x /docker-entrypoint.py
+WORKDIR /go/src/Cardinal-Cryptography/docker-github-workflows-validator
+COPY . .
+RUN go build
 
-ENV DOT_GITHUB_PATH ""
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
 
-ENTRYPOINT ["python", "/docker-entrypoint.py"]
+WORKDIR /bin
+COPY --from=builder /go/src/Cardinal-Cryptography/docker-github-workflows-validator/docker-github-workflows-validator github-workflows-validator
+RUN chmod +x /bin/github-workflows-validator
+RUN /bin/github-workflows-validator
+ENTRYPOINT ["/bin/github-workflows-validator"]
