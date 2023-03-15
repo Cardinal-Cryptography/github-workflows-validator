@@ -1,25 +1,44 @@
 # docker-github-workflows-validator
-Quick script to validate github workflows
+Quick tool to validate workflows and action in .github directory
 
-## Building docker image
-Run the following command to build the image.
+## Building
+Run `go build -o github-workflows-validator` to compile the binary.
 
-    docker build -t github-workflows-validator -f Dockerfile .
+### Building docker image
+To build the docker image, use the following command.
+
+    docker build -t github-workflows-validator .
 
 
 ## Running
+Check below help message for `validate` command:
 
-### Command-line
-Python 3 is required to run the script.  Replace path to the .github directory below.
+    Usage:  docker-github-workflows-validator validate [FLAGS]
 
-    DOT_GITHUB_PATH=/Users/me/my-repo/.github python3 github-workflows-validator.py
+    Runs the validation on files from a specified directory
+
+    Required flags:
+      -p,    --path         Path to .github directory
+
+Use `-p` argument to point to `.github` directories.  The tool will search for any actions in the `actions`
+directory, where each action is in its own sub-directory and its filename is either `action.yaml` or
+`action.yml`.  And, it will search for workflows' `*.yml` and `*.yaml` files in `workflows` directory.
+
 
 ### Using docker image
 Note that the image has to be present, either built or pulled from the registry.
 Replace path to the .github directory.
 
-    docker run --rm --name tmp-gha-validator \
+    docker run --rm --name tmp-gh-wf-validator \
       -v /Users/me/my-repo/.github:/dot-github \
-      -e DOT_GITHUB_PATH=/dot-github \
-      github-workflows-validator
+      github-workflows-validator \
+	  validate -p /dot-github
 
+
+## Exit code
+Currently, tool always exit with code 0.  To check if there are any errors, please use `grep` to filter
+the output for errors.
+
+## TODO
+
+* workflow jobs - validate needs
