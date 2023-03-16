@@ -17,15 +17,15 @@ func (ao *ActionOutput) Validate(action string, name string) ([]string, error) {
 		return validationErrors, err
 	}
 	if !m {
-		validationErrors = append(validationErrors, ao.formatError(action, name, "EA107", "Action output name should contain lowercase alphanumeric characters and hyphens only", "action-output-lowercase-alphanumeric-and-hyphens"))
+		validationErrors = append(validationErrors, ao.formatError(action, name, "NA501", "Action output name should contain lowercase alphanumeric characters and hyphens only"))
 	}
 
 	if ao.Description == "" {
-		validationErrors = append(validationErrors, ao.formatError(action, name, "EA108", "Action output must have a description", "action-output-description-empty"))
+		validationErrors = append(validationErrors, ao.formatError(action, name, "NA502", "Action output must have a description"))
 	}
 	return validationErrors, nil
 }
 
-func (ao *ActionOutput) formatError(action string, output string, code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-60s %s (%s)", code, "action "+action+" output "+output, desc, name)
+func (ao *ActionOutput) formatError(action string, output string, code string, desc string) string {
+	return fmt.Sprintf("%s: %-60s %s", code, "action "+action+" output "+output, desc)
 }

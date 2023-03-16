@@ -118,8 +118,8 @@ func (w *Workflow) Validate(d *DotGithub) ([]string, error) {
 	return validationErrors, err
 }
 
-func (w *Workflow) formatError(code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-80s %s (%s)", code, "workflow "+w.FileName, desc, name)
+func (w *Workflow) formatError(code string, desc string) string {
+	return fmt.Sprintf("%s: %-80s %s", code, "workflow "+w.FileName, desc)
 }
 
 func (w *Workflow) validateFileName() (string, error) {
@@ -128,7 +128,7 @@ func (w *Workflow) validateFileName() (string, error) {
 		return "", err
 	}
 	if !m {
-		return w.formatError("EW101", "Workflow file name should contain alphanumeric characters and hyphens only", "workflow-filename-alphanumeric-and-hyphens"), nil
+		return w.formatError("NW101", "Workflow file name should contain alphanumeric characters and hyphens only"), nil
 	}
 
 	m, err = regexp.MatchString(`\.yml$`, w.Path)
@@ -136,7 +136,7 @@ func (w *Workflow) validateFileName() (string, error) {
 		return "", err
 	}
 	if !m {
-		return w.formatError("EW102", "Workflow file name should have .yml extension", "workflow-filename-yml-extension"), nil
+		return w.formatError("NW102", "Workflow file name should have .yml extension"), nil
 	}
 	return "", nil
 }
@@ -150,7 +150,7 @@ func (w *Workflow) validateEnv() ([]string, error) {
 				return validationErrors, err
 			}
 			if !m {
-				validationErrors = append(validationErrors, w.formatError("EW121", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "workflow-env-variable-uppercase-alphanumeric-and-underscore"))
+				validationErrors = append(validationErrors, w.formatError("NW103", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName)))
 			}
 		}
 	}
@@ -160,10 +160,10 @@ func (w *Workflow) validateEnv() ([]string, error) {
 func (w *Workflow) validateMissingFields() ([]string, error) {
 	var validationErrors []string
 	if w.Name == "" {
-		validationErrors = append(validationErrors, w.formatError("EW103", "Workflow name is empty", "workflow-name-empty"))
+		validationErrors = append(validationErrors, w.formatError("NW104", "Workflow name is empty"))
 	}
 	if w.Description == "" {
-		validationErrors = append(validationErrors, w.formatError("EW104", "Workflow description is empty", "workflow-description-empty"))
+		validationErrors = append(validationErrors, w.formatError("NW105", "Workflow description is empty"))
 	}
 	return validationErrors, nil
 }
@@ -173,7 +173,7 @@ func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
 	if len(w.Jobs) == 1 {
 		for jobName, _ := range w.Jobs {
 			if jobName != "main" {
-				validationErrors = append(validationErrors, w.formatError("EW106", "When workflow has only one job, it should be named 'main'", "workflow-only-job-not-main"))
+				validationErrors = append(validationErrors, w.formatError("NW106", "When workflow has only one job, it should be named 'main'"))
 			}
 		}
 	}
@@ -204,10 +204,19 @@ func (w *Workflow) validateCalledVarNames() ([]string, error) {
 				return validationErrors, err
 			}
 			if !m {
-				validationErrors = append(validationErrors, w.formatError("EW107", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1])), "called-variable-uppercase-alphanumeric-and-underscore"))
+				validationErrors = append(validationErrors, w.formatError("NW107", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1]))))
 			}
 		}
 	}
+
+	re := regexp.MustCompile(fmt.Sprintf("\\${{[ ]*([a-zA-Z0-9\\-_]+)[ ]*}}"))
+	found := re.FindAllSubmatch(w.Raw, -1)
+	for _, f := range found {
+		if string(f[1]) != "false" && string(f[1]) != "true" {
+			validationErrors = append(validationErrors, w.formatError("EW201", fmt.Sprintf("Called variable '%s' is invalid", string(f[1]))))
+		}
+	}
+	return validationErrors, nil
 	return validationErrors, nil
 }
 
@@ -242,7 +251,7 @@ func (w *Workflow) validateCalledInputs() ([]string, error) {
 			}
 		}
 		if notInInputs {
-			validationErrors = append(validationErrors, w.formatError("EW110", fmt.Sprintf("Called input '%s' does not exist", string(f[1])), "workflow-called-input-missing"))
+			validationErrors = append(validationErrors, w.formatError("EW202", fmt.Sprintf("Called input '%s' does not exist", string(f[1]))))
 		}
 	}
 	return validationErrors, nil

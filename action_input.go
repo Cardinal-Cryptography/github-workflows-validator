@@ -18,15 +18,15 @@ func (ai *ActionInput) Validate(action string, name string) ([]string, error) {
 		return validationErrors, err
 	}
 	if !m {
-		validationErrors = append(validationErrors, ai.formatError(action, name, "EA105", "Action input name should contain lowercase alphanumeric characters and hyphens only", "action-input-lowercase-alphanumeric-and-hyphens"))
+		validationErrors = append(validationErrors, ai.formatError(action, name, "NA301", "Action input name should contain lowercase alphanumeric characters and hyphens only"))
 	}
 
 	if ai.Description == "" {
-		validationErrors = append(validationErrors, ai.formatError(action, name, "EA106", "Action input must have a description", "action-input-description-empty"))
+		validationErrors = append(validationErrors, ai.formatError(action, name, "NA302", "Action input must have a description"))
 	}
 	return validationErrors, nil
 }
 
-func (ai *ActionInput) formatError(action string, input string, code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-60s %s (%s)", code, "action "+action+" input "+input, desc, name)
+func (ai *ActionInput) formatError(action string, input string, code string, desc string) string {
+	return fmt.Sprintf("%s: %-60s %s", code, "action "+action+" input "+input, desc)
 }

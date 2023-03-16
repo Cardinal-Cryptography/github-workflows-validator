@@ -18,15 +18,15 @@ func (wi *WorkflowInput) Validate(workflow string, placement string, name string
 		return validationErrors, err
 	}
 	if !m {
-		validationErrors = append(validationErrors, wi.formatError(workflow, placement, name, "EW108", "Workflow input name should contain lowercase alphanumeric characters and hyphens only", "workflow-input-lowercase-alphanumeric-and-hyphens"))
+		validationErrors = append(validationErrors, wi.formatError(workflow, placement, name, "NW301", "Workflow input name should contain lowercase alphanumeric characters and hyphens only"))
 	}
 
 	if wi.Description == "" {
-		validationErrors = append(validationErrors, wi.formatError(workflow, placement, name, "EW109", "Workflow input must have a description", "workflow-input-description-empty"))
+		validationErrors = append(validationErrors, wi.formatError(workflow, placement, name, "NW302", "Workflow input must have a description"))
 	}
 	return validationErrors, nil
 }
 
-func (wi *WorkflowInput) formatError(workflow string, placement string, input string, code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-80s %s (%s)", code, "workflow "+workflow+" "+placement+" input "+input, desc, name)
+func (wi *WorkflowInput) formatError(workflow string, placement string, input string, code string, desc string) string {
+	return fmt.Sprintf("%s: %-80s %s", code, "workflow "+workflow+" "+placement+" input "+input, desc)
 }

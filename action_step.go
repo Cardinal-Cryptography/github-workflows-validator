@@ -74,9 +74,9 @@ func (as *ActionStep) validateUses(action string, workflowJob string, name strin
 		}
 		if !m {
 			if as.ParentType == "workflow" {
-				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, name, "EW113", fmt.Sprintf("Path to external action '%s' is invalid", as.Uses), "workflow-job-step-uses-invalid-external-path"))
+				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, name, "EW801", fmt.Sprintf("Path to external action '%s' is invalid", as.Uses)))
 			} else {
-				validationErrors = append(validationErrors, as.formatError(action, name, "EA113", fmt.Sprintf("Path to external action '%s' is invalid", as.Uses), "action-step-uses-invalid-external-path"))
+				validationErrors = append(validationErrors, as.formatError(action, name, "EA801", fmt.Sprintf("Path to external action '%s' is invalid", as.Uses)))
 			}
 		} else {
 			verrs, err := as.validateUsesExternalAction(action, workflowJob, name, as.Uses, d)
@@ -101,18 +101,18 @@ func (as *ActionStep) validateUsesLocalAction(action string, workflowJob string,
 	}
 	if !m {
 		if as.ParentType == "workflow" {
-			validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW111", fmt.Sprintf("Path to local action '%s' is invalid", uses), "workflow-job-step-uses-invalid-local-path"))
+			validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW802", fmt.Sprintf("Path to local action '%s' is invalid", uses)))
 		} else {
-			validationErrors = append(validationErrors, as.formatError(action, step, "EA111", fmt.Sprintf("Path to local action '%s' is invalid", uses), "action-step-uses-invalid-local-path"))
+			validationErrors = append(validationErrors, as.formatError(action, step, "EA802", fmt.Sprintf("Path to local action '%s' is invalid", uses)))
 		}
 	}
 
 	usedAction := strings.Replace(uses, "./.github/actions/", "", -1)
 	if d.Actions == nil || d.Actions[usedAction] == nil {
 		if as.ParentType == "workflow" {
-			validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW112", fmt.Sprintf("Call to non-existing local action '%s'", uses), "workflow-job-step-uses-nonexisting-local-action"))
+			validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW803", fmt.Sprintf("Call to non-existing local action '%s'", uses)))
 		} else {
-			validationErrors = append(validationErrors, as.formatError(action, step, "EA112", fmt.Sprintf("Call to non-existing local action '%s'", uses), "action-step-uses-nonexisting-local-action"))
+			validationErrors = append(validationErrors, as.formatError(action, step, "EA803", fmt.Sprintf("Call to non-existing local action '%s'", uses)))
 		}
 		return validationErrors, nil
 	}
@@ -122,9 +122,9 @@ func (as *ActionStep) validateUsesLocalAction(action string, workflowJob string,
 			if daInput.Required {
 				if as.With == nil || as.With[daInputName] == "" {
 					if as.ParentType == "workflow" {
-						validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW113", fmt.Sprintf("Required input '%s' missing for local action '%s'", daInputName, uses), "workflow-job-step-uses-local-action-missing-input"))
+						validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW804", fmt.Sprintf("Required input '%s' missing for local action '%s'", daInputName, uses)))
 					} else {
-						validationErrors = append(validationErrors, as.formatError(action, step, "EA113", fmt.Sprintf("Required input '%s' missing for local action '%s'", daInputName, uses), "action-step-uses-local-action-missing-input"))
+						validationErrors = append(validationErrors, as.formatError(action, step, "EA804", fmt.Sprintf("Required input '%s' missing for local action '%s'", daInputName, uses)))
 					}
 				}
 			}
@@ -134,9 +134,9 @@ func (as *ActionStep) validateUsesLocalAction(action string, workflowJob string,
 		for usedInput := range as.With {
 			if d.Actions[usedAction].Inputs == nil || d.Actions[usedAction].Inputs[usedInput] == nil {
 				if as.ParentType == "workflow" {
-					validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW116", fmt.Sprintf("Input '%s' does not exist in local action '%s'", usedInput, uses), "workflow-job-step-uses-local-action-nonexisting-input"))
+					validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW805", fmt.Sprintf("Input '%s' does not exist in local action '%s'", usedInput, uses)))
 				} else {
-					validationErrors = append(validationErrors, as.formatError(action, step, "EA116", fmt.Sprintf("Input '%s' does not exist in local action '%s'", usedInput, uses), "action-step-uses-local-action-nonexisting-input"))
+					validationErrors = append(validationErrors, as.formatError(action, step, "EA805", fmt.Sprintf("Input '%s' does not exist in local action '%s'", usedInput, uses)))
 				}
 			}
 		}
@@ -156,9 +156,9 @@ func (as *ActionStep) validateUsesExternalAction(action string, workflowJob stri
 				if deaInput.Required {
 					if as.With == nil || as.With[deaInputName] == "" {
 						if as.ParentType == "workflow" {
-							validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW115", fmt.Sprintf("Required input '%s' missing for external action '%s'", deaInputName, uses), "workflow-job-step-uses-external-action-missing-input"))
+							validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW806", fmt.Sprintf("Required input '%s' missing for external action '%s'", deaInputName, uses)))
 						} else {
-							validationErrors = append(validationErrors, as.formatError(action, step, "EA115", fmt.Sprintf("Required input '%s' missing for external action '%s'", deaInputName, uses), "action-step-uses-external-action-missing-input"))
+							validationErrors = append(validationErrors, as.formatError(action, step, "EA806", fmt.Sprintf("Required input '%s' missing for external action '%s'", deaInputName, uses)))
 						}
 					}
 				}
@@ -168,18 +168,18 @@ func (as *ActionStep) validateUsesExternalAction(action string, workflowJob stri
 			for usedInput := range as.With {
 				if d.ExternalActions[uses].Inputs == nil || d.ExternalActions[uses].Inputs[usedInput] == nil {
 					if as.ParentType == "workflow" {
-						validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW117", fmt.Sprintf("Input '%s' does not exist in external action '%s'", usedInput, uses), "workflow-job-step-uses-external-action-nonexisting-input"))
+						validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW807", fmt.Sprintf("Input '%s' does not exist in external action '%s'", usedInput, uses)))
 					} else {
-						validationErrors = append(validationErrors, as.formatError(action, step, "EA117", fmt.Sprintf("Input '%s' does not exist in external action '%s'", usedInput, uses), "action-step-uses-external-action-nonexisting-input"))
+						validationErrors = append(validationErrors, as.formatError(action, step, "EA807", fmt.Sprintf("Input '%s' does not exist in external action '%s'", usedInput, uses)))
 					}
 				}
 			}
 		}
 	} else {
 		if as.ParentType == "workflow" {
-			validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW114", fmt.Sprintf("Call to non-existing external action '%s'", uses), "workflow-job-step-uses-nonexisting-external-action"))
+			validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW808", fmt.Sprintf("Call to non-existing external action '%s'", uses)))
 		} else {
-			validationErrors = append(validationErrors, as.formatError(action, step, "EA114", fmt.Sprintf("Call to non-existing external action '%s'", uses), "action-step-uses-nonexisting-external-action"))
+			validationErrors = append(validationErrors, as.formatError(action, step, "EA808", fmt.Sprintf("Call to non-existing external action '%s'", uses)))
 		}
 	}
 
@@ -196,9 +196,9 @@ func (as *ActionStep) validateEnv(action string, workflowJob string, step string
 			}
 			if !m {
 				if as.ParentType == "workflow" {
-					validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW122", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "workflow-job-step-env-variable-uppercase-alphanumeric-and-underscore"))
+					validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "NW701", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName)))
 				} else {
-					validationErrors = append(validationErrors, as.formatError(action, step, "EA122", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "action-step-env-variable-uppercase-alphanumeric-and-underscore"))
+					validationErrors = append(validationErrors, as.formatError(action, step, "NA701", fmt.Sprintf("Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName)))
 				}
 			}
 		}
@@ -216,37 +216,37 @@ func (as *ActionStep) validateCalledStepOutputs(action string, workflowJob strin
 	for _, f := range found {
 		if as.ParentType == "workflow" {
 			if d.Workflows[action].Jobs == nil || d.Workflows[action].Jobs[workflowJob] == nil {
-				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "workflow-called-step-missing"))
+				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW809", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 				continue
 			}
 
 			found := d.Workflows[action].Jobs[workflowJob].IsStepOutputExist(string(f[1]), string(f[2]), d)
 			if found == -1 {
-				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "workflow-job-step-called-step-missing"))
+				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW810", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 			} else if found == -2 {
-				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW119", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]), string(f[2])), "workflow-job-step-called-step-output-missing"))
+				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW811", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]), string(f[2]))))
 			}
 		} else {
 			if d.Actions[action].Runs == nil {
-				validationErrors = append(validationErrors, as.formatError(action, step, "EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "action-called-step-missing"))
+				validationErrors = append(validationErrors, as.formatError(action, step, "EA809", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 				continue
 			}
 
 			found := d.Actions[action].Runs.IsStepOutputExist(string(f[1]), string(f[2]), d)
 			if found == -1 {
-				validationErrors = append(validationErrors, as.formatError(action, step, "EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "action-called-step-missing"))
+				validationErrors = append(validationErrors, as.formatError(action, step, "EA809", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 			} else if found == -2 {
-				validationErrors = append(validationErrors, as.formatError(action, step, "EA119", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]), string(f[2])), "action-called-step-output-missing"))
+				validationErrors = append(validationErrors, as.formatError(action, step, "EA811", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]), string(f[2]))))
 			}
 		}
 	}
 	return validationErrors, nil
 }
 
-func (as *ActionStep) formatError(action string, step string, code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-60s %s (%s)", code, "action "+action+" step "+step, desc, name)
+func (as *ActionStep) formatError(action string, step string, code string, desc string) string {
+	return fmt.Sprintf("%s: %-60s %s", code, "action "+action+" step "+step, desc)
 }
 
-func (as *ActionStep) formatErrorForWorkflow(workflow string, workflowJob string, step string, code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-80s %s (%s)", code, "workflow "+workflow+" job "+workflowJob+" step "+step, desc, name)
+func (as *ActionStep) formatErrorForWorkflow(workflow string, workflowJob string, step string, code string, desc string) string {
+	return fmt.Sprintf("%s: %-80s %s", code, "workflow "+workflow+" job "+workflowJob+" step "+step, desc)
 }

@@ -129,8 +129,8 @@ func (a *Action) Validate(d *DotGithub) ([]string, error) {
 	return validationErrors, err
 }
 
-func (a *Action) formatError(code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-40s %s (%s)", code, "action "+a.DirName, desc, name)
+func (a *Action) formatError(code string, desc string) string {
+	return fmt.Sprintf("%s: %-40s %s", code, "action "+a.DirName, desc)
 }
 
 func (a *Action) validateDirName() (string, error) {
@@ -139,7 +139,7 @@ func (a *Action) validateDirName() (string, error) {
 		return "", err
 	}
 	if !m {
-		return a.formatError("EA101", "Action directory name should contain lowercase alphanumeric characters and hyphens only", "action-dirname-lowercase-alphanumeric-and-hyphens"), nil
+		return a.formatError("NA101", "Action directory name should contain lowercase alphanumeric characters and hyphens only"), nil
 	}
 	return "", nil
 }
@@ -150,7 +150,7 @@ func (a *Action) validateFileName() (string, error) {
 		return "", err
 	}
 	if !m {
-		return a.formatError("EA102", "Action file name should have .yml extension", "action-filename-yml-extension"), nil
+		return a.formatError("NA102", "Action file name should have .yml extension"), nil
 	}
 	return "", nil
 }
@@ -158,10 +158,10 @@ func (a *Action) validateFileName() (string, error) {
 func (a *Action) validateMissingFields() ([]string, error) {
 	var validationErrors []string
 	if a.Name == "" {
-		validationErrors = append(validationErrors, a.formatError("EA103", "Action name is empty", "action-name-empty"))
+		validationErrors = append(validationErrors, a.formatError("NA103", "Action name is empty"))
 	}
 	if a.Description == "" {
-		validationErrors = append(validationErrors, a.formatError("EA104", "Action description is empty", "action-description-empty"))
+		validationErrors = append(validationErrors, a.formatError("NA104", "Action description is empty"))
 	}
 	return validationErrors, nil
 }
@@ -214,8 +214,16 @@ func (a *Action) validateCalledVarNames() ([]string, error) {
 				return validationErrors, err
 			}
 			if !m {
-				validationErrors = append(validationErrors, a.formatError("EA109", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1])), "called-variable-uppercase-alphanumeric-and-underscore"))
+				validationErrors = append(validationErrors, a.formatError("NA105", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1]))))
 			}
+		}
+	}
+
+	re := regexp.MustCompile(fmt.Sprintf("\\${{[ ]*([a-zA-Z0-9\\-_]+)[ ]*}}"))
+	found := re.FindAllSubmatch(a.Raw, -1)
+	for _, f := range found {
+		if string(f[1]) != "false" && string(f[1]) != "true" {
+			validationErrors = append(validationErrors, a.formatError("EA201", fmt.Sprintf("Called variable '%s' is invalid", string(f[1]))))
 		}
 	}
 	return validationErrors, nil
@@ -227,7 +235,7 @@ func (a *Action) validateCalledInputs() ([]string, error) {
 	found := re.FindAllSubmatch(a.Raw, -1)
 	for _, f := range found {
 		if a.Inputs == nil || a.Inputs[string(f[1])] == nil {
-			validationErrors = append(validationErrors, a.formatError("EA110", fmt.Sprintf("Called input '%s' does not exist", string(f[1])), "action-called-input-missing"))
+			validationErrors = append(validationErrors, a.formatError("EA202", fmt.Sprintf("Called input '%s' does not exist", string(f[1]))))
 		}
 	}
 	return validationErrors, nil
@@ -239,10 +247,10 @@ func (a *Action) validateCalledStepOutputs() ([]string, error) {
 	found := re.FindAllSubmatch(a.Raw, -1)
 	for _, f := range found {
 		if a.Runs == nil {
-			validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "action-called-step-missing"))
+			validationErrors = append(validationErrors, a.formatError("EA203", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 		} else {
 			if !a.Runs.IsStepExist(string(f[1])) {
-				validationErrors = append(validationErrors, a.formatError("EA118", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1])), "action-called-step-missing"))
+				validationErrors = append(validationErrors, a.formatError("EA204", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 			}
 		}
 	}

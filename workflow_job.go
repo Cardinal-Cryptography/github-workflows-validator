@@ -32,10 +32,10 @@ func (wj *WorkflowJob) Validate(workflow string, job string, d *DotGithub) ([]st
 	}
 
 	if wj.Uses == "" && wj.RunsOn == "" {
-		validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW120", "Workflow job name should have either 'uses' or 'runs-on'", "workflow-job-uses-or-runs-on-not-found"))
+		validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW601", "Workflow job name should have either 'uses' or 'runs-on'"))
 	}
 	if strings.Contains(wj.RunsOn, "latest") {
-		validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW120", "Workflow job should not have 'latest' in 'runs-on'", "workflow-job-latest-in-runs-on"))
+		validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW602", "Workflow job should not have 'latest' in 'runs-on'"))
 	}
 
 	verrs, err := wj.validateEnv(workflow, job)
@@ -66,7 +66,7 @@ func (wj *WorkflowJob) validateName(workflow string, job string, d *DotGithub) (
 		return "", err
 	}
 	if !m {
-		return wj.formatError(workflow, job, "EW105", "Workflow job name should contain lowercase alphanumeric characters and hyphens only", "workflow-job-lowercase-alphanumeric-and-hyphens"), nil
+		return wj.formatError(workflow, job, "NW501", "Workflow job name should contain lowercase alphanumeric characters and hyphens only"), nil
 	}
 	return "", nil
 }
@@ -80,15 +80,15 @@ func (wj *WorkflowJob) validateEnv(workflow string, job string) ([]string, error
 				return validationErrors, err
 			}
 			if !m {
-				validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW122", fmt.Sprintf(workflow, job, "Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName), "workflow-job-env-variable-uppercase-alphanumeric-and-underscore"))
+				validationErrors = append(validationErrors, wj.formatError(workflow, job, "NW502", fmt.Sprintf(workflow, job, "Env variable name '%s' should contain uppercase alphanumeric characters and underscore only", envName)))
 			}
 		}
 	}
 	return validationErrors, nil
 }
 
-func (wj *WorkflowJob) formatError(workflow string, job string, code string, desc string, name string) string {
-	return fmt.Sprintf("%s: %-60s %s (%s)", code, "workflow "+workflow+" job "+job, desc, name)
+func (wj *WorkflowJob) formatError(workflow string, job string, code string, desc string) string {
+	return fmt.Sprintf("%s: %-60s %s", code, "workflow "+workflow+" job "+job, desc)
 }
 
 func (wj *WorkflowJob) IsStepExist(id string) bool {
