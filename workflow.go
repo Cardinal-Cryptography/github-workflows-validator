@@ -188,6 +188,23 @@ func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
 				validationErrors = append(validationErrors, verr)
 			}
 		}
+		if job.Needs != nil {
+			needsStr, ok := job.Needs.(string)
+			if ok {
+				if w.Jobs[needsStr] == nil {
+					validationErrors = append(validationErrors, w.formatError("EW203", fmt.Sprintf("Job '%s' has invalid value '%s' in 'needs' field", jobName, needsStr)))
+				}
+			}
+
+			needsList, ok := job.Needs.([]interface{})
+			if ok {
+				for _, neededJob := range needsList {
+					if w.Jobs[neededJob.(string)] == nil {
+						validationErrors = append(validationErrors, w.formatError("EW203", fmt.Sprintf("Job '%s' has invalid value '%s' in 'needs' field", jobName, neededJob.(string))))
+					}
+				}
+			}
+		}
 	}
 	return validationErrors, nil
 }

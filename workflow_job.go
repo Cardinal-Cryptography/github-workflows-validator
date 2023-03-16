@@ -13,6 +13,7 @@ type WorkflowJob struct {
 	RunsOn string            `yaml:"runs-on"`
 	Steps  []*ActionStep     `yaml:"steps"`
 	Env    map[string]string `yaml:"env"`
+	Needs  interface{}       `yaml:"needs,omitempty"`
 }
 
 func (wj *WorkflowJob) SetParentType(t string) {
