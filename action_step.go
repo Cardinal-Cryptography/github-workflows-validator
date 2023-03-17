@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"os"
 )
 
 type ActionStep struct {
@@ -211,9 +212,16 @@ func (as *ActionStep) validateCalledStepOutputs(action string, workflowJob strin
 	if as.Run == "" {
 		return validationErrors, nil
 	}
+	runAndEnvsStr := as.Run
+	if as.Env != nil {
+		for _, envVal := range as.Env {
+			runAndEnvsStr = runAndEnvsStr + " " + envVal
+		}
+	}
 	re := regexp.MustCompile(fmt.Sprintf("\\${{[ ]*steps\\.([a-zA-Z0-9\\-_]+)\\.outputs\\.([a-zA-Z0-9\\-_]+)[ ]*}}"))
-	found := re.FindAllSubmatch([]byte(as.Run), -1)
+	found := re.FindAllSubmatch([]byte(runAndEnvsStr), -1)
 	for _, f := range found {
+		fmt.Fprintf(os.Stdout, "%s  %s\n", string(f[1]), string(f[2]))
 		if as.ParentType == "workflow" {
 			if d.Workflows[action].Jobs == nil || d.Workflows[action].Jobs[workflowJob] == nil {
 				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "EW809", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
