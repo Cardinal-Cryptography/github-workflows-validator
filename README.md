@@ -4,9 +4,12 @@ Quick tool to validate workflows and actions in .github directory
 ## Checks
 See the checks that are performed on all the workflow and action files.  These are separate into errors
 and warnings.  Each check has a code where as one starting with `E` indicates an error, `N` indicates
-a warning about invalid naming convention.  Additionally, code will contain either `A` if it is an 
-action where the issue is found, and `W` if issue occurs in a workflow.
+a warning about invalid naming convention and, finally `W` is any other warning.
+Additionally, code will contain either `A` if it is an action where the issue is found, and `W` if 
+issue occurs in a workflow.
+
 ### Errors
+
 | Code | Description |
 |------|-------------|
 | EA809 | Called step with id '%s' does not exist |
@@ -26,6 +29,12 @@ action where the issue is found, and `W` if issue occurs in a workflow.
 | EW809 | Called step with id '%s' does not exist |
 | EW810 | Called step with id '%s' does not exist |
 | EW811 | Called step with id '%s' output '%s' does not exist |
+
+### Warnings
+
+| Code | Description |
+|------|-------------|
+| WW101 | Called env var '%s' not found in global, job or step 'env' block - check it |
 
 ### Naming convention warnings
 
@@ -91,6 +100,3 @@ Replace path to the .github directory.
 Currently, tool always exit with code 0.  To check if there are any errors, please use `grep` to filter
 the output for errors.
 
-## TODO
-
-* warning about reference to not defined env (might be defined outside of code, hence just warning)
