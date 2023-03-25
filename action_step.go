@@ -48,6 +48,16 @@ func (as *ActionStep) Validate(action string, workflowJob string, name string, d
 			validationErrors = append(validationErrors, verr)
 		}
 	}
+
+	verrs, err = as.validateCalledEnv(action, workflowJob, name, as.Uses, d)
+	if err != nil {
+		return validationErrors, err
+	}
+	if len(verrs) > 0 {
+		for _, verr := range verrs {
+			validationErrors = append(validationErrors, verr)
+		}
+	}
 	return validationErrors, nil
 }
 
@@ -243,6 +253,33 @@ func (as *ActionStep) validateCalledStepOutputs(action string, workflowJob strin
 				validationErrors = append(validationErrors, as.formatError(action, step, "EA809", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 			} else if found == -2 {
 				validationErrors = append(validationErrors, as.formatError(action, step, "EA811", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]), string(f[2]))))
+			}
+		}
+	}
+	return validationErrors, nil
+}
+
+func (as *ActionStep) validateCalledEnv(action string, workflowJob string, step string, uses string, d *DotGithub) ([]string, error) {
+	var validationErrors []string
+	if as.Run == "" {
+		return validationErrors, nil
+	}
+	re := regexp.MustCompile(fmt.Sprintf("\\${{[ ]*env\\.([a-zA-Z0-9\\-_]+)[ ]*}}"))
+	found := re.FindAllSubmatch([]byte(as.Run), -1)
+	for _, f := range found {
+		if !strings.HasPrefix(string(f[1]), "GITHUB_") && !strings.HasPrefix(string(f[1]), "RUNNER_") && string(f[1]) != "CI" && as.ParentType == "workflow" {
+			found := false
+			if as.Env != nil && as.Env[string(f[1])] != "" {
+				found = true
+			}
+			if !found && d.Workflows[action].Jobs[workflowJob].Env != nil && d.Workflows[action].Jobs[workflowJob].Env[string(f[1])] != "" {
+				found = true
+			}
+			if !found && d.Workflows[action].Env != nil && d.Workflows[action].Env[string(f[1])] != "" {
+				found = true
+			}
+			if !found {
+				validationErrors = append(validationErrors, as.formatErrorForWorkflow(action, workflowJob, step, "WW101", fmt.Sprintf("Called env var '%s' not found in global, job or step 'env' block - check it", string(f[1]))))
 			}
 		}
 	}
