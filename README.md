@@ -64,7 +64,7 @@ To build the docker image, use the following command.
 ## Running
 Check below help message for `validate` command:
 
-    Usage:  docker-github-actions-validator validate [FLAGS]
+    Usage:  github-actions-validator validate [FLAGS]
 
     Runs the validation on files from a specified directory
 
