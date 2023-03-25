@@ -1,4 +1,4 @@
-module github.com/Cardinal-Cryptography/github-workflows-validator
+module github.com/Cardinal-Cryptography/github-actions-validator
 
 go 1.19
 

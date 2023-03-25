@@ -1,19 +1,19 @@
-# github-workflows-validator
+# github-actions-validator
 Quick tool to validate workflows and action in .github directory
 
 ## Building
-Run `go build -o github-workflows-validator` to compile the binary.
+Run `go build -o github-actions-validator` to compile the binary.
 
 ### Building docker image
 To build the docker image, use the following command.
 
-    docker build -t github-workflows-validator .
+    docker build -t github-actions-validator .
 
 
 ## Running
 Check below help message for `validate` command:
 
-    Usage:  docker-github-workflows-validator validate [FLAGS]
+    Usage:  docker-github-actions-validator validate [FLAGS]
 
     Runs the validation on files from a specified directory
 
@@ -29,9 +29,9 @@ directory, where each action is in its own sub-directory and its filename is eit
 Note that the image has to be present, either built or pulled from the registry.
 Replace path to the .github directory.
 
-    docker run --rm --name tmp-gh-wf-validator \
+    docker run --rm --name tmp-gha-validator \
       -v /Users/me/my-repo/.github:/dot-github \
-      github-workflows-validator \
+      github-actions-validator \
 	  validate -p /dot-github
 
 
