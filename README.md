@@ -14,6 +14,7 @@ action where the issue is found, and `W` if issue occurs in a workflow.
 | EW203 | Job '%s' has invalid value '%s' in 'needs' field |
 | EW201 | Called variable '%s' is invalid |
 | EW202 | Called input '%s' does not exist |
+| EW203 | Job '%s' has invalid value '%s' in 'needs' field |
 | EW801 | Path to external action '%s' is invalid |
 | EW802 | Path to local action '%s' is invalid |
 | EW803 | Call to non-existing local action '%s' |
@@ -92,4 +93,4 @@ the output for errors.
 
 ## TODO
 
-* workflow jobs - validate needs
+* warning about reference to not defined env (might be defined outside of code, hence just warning)
