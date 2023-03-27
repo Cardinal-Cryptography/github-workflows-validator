@@ -13,6 +13,10 @@ import (
 
 type DotGithub struct {
 	Path            string
+	VarsFile        string
+	SecretsFile     string
+	Vars            map[string]bool
+	Secrets         map[string]bool
 	Actions         map[string]*Action
 	ExternalActions map[string]*Action
 	Workflows       map[string]*Workflow
@@ -38,6 +42,9 @@ func (d *DotGithub) InitFiles() error {
 			return err
 		}
 	}
+
+	d.getVars()
+	d.getSecrets()
 
 	return nil
 }
@@ -159,6 +166,36 @@ func (d *DotGithub) getWorkflows() {
 		}
 		d.Workflows[e.Name()] = &Workflow{
 			Path: entryPath,
+		}
+	}
+}
+
+func (d *DotGithub) getVars() {
+	d.Vars = make(map[string]bool)
+	if d.VarsFile != "" {
+		fmt.Fprintf(os.Stdout, "**** Reading file with list of possible variable names %s ...\n", d.VarsFile)
+		b, err := ioutil.ReadFile(d.VarsFile)
+		if err != nil {
+			log.Fatal(fmt.Errorf("Cannot read file %s: %w", d.VarsFile, err))
+		}
+		l := strings.Fields(string(b))
+		for _, v := range l {
+			d.Vars[v] = true
+		}
+	}
+}
+
+func (d *DotGithub) getSecrets() {
+	d.Secrets = make(map[string]bool)
+	if d.SecretsFile != "" {
+		fmt.Fprintf(os.Stdout, "**** Reading file with list of possible secret names %s ...\n", d.SecretsFile)
+		b, err := ioutil.ReadFile(d.SecretsFile)
+		if err != nil {
+			log.Fatal(fmt.Errorf("Cannot read file %s: %w", d.SecretsFile, err))
+		}
+		l := strings.Fields(string(b))
+		for _, s := range l {
+			d.Secrets[s] = true
 		}
 	}
 }

@@ -10,6 +10,8 @@ func main() {
 	cli := gocli.NewCLI("github-actions-validator", "Validates GitHub Actions' .github directory", "Mikolaj Gasior <miko@gen64.net>")
 	cmdValidate := cli.AddCmd("validate", "Runs the validation on files from a specified directory", validateHandler)
 	cmdValidate.AddFlag("path", "p", "", "Path to .github directory", gocli.TypePathDir|gocli.MustExist|gocli.Required, nil)
+	cmdValidate.AddFlag("vars-file", "z", "", "Check if variable names exist in this file (one per line)", gocli.TypePathFile|gocli.MustExist, nil)
+	cmdValidate.AddFlag("secrets-file", "s", "", "Check if secret names exist in this file (one per line)", gocli.TypePathFile|gocli.MustExist, nil)
 	_ = cli.AddCmd("version", "Prints version", versionHandler)
 	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
 		os.Args = []string{"App", "version"}
@@ -24,7 +26,9 @@ func versionHandler(c *gocli.CLI) int {
 
 func validateHandler(c *gocli.CLI) int {
 	dotGithub := DotGithub{
-		Path: c.Flag("path"),
+		Path:        c.Flag("path"),
+		VarsFile:    c.Flag("vars-file"),
+		SecretsFile: c.Flag("secrets-file"),
 	}
 	err := dotGithub.InitFiles()
 	if err != nil {

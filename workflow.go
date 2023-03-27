@@ -95,7 +95,7 @@ func (w *Workflow) Validate(d *DotGithub) ([]string, error) {
 		}
 	}
 
-	verrs, err = w.validateCalledVarNames()
+	verrs, err = w.validateCalledVarNames(d)
 	if err != nil {
 		return validationErrors, err
 	}
@@ -162,9 +162,6 @@ func (w *Workflow) validateMissingFields() ([]string, error) {
 	if w.Name == "" {
 		validationErrors = append(validationErrors, w.formatError("NW104", "Workflow name is empty"))
 	}
-	if w.Description == "" {
-		validationErrors = append(validationErrors, w.formatError("NW105", "Workflow description is empty"))
-	}
 	return validationErrors, nil
 }
 
@@ -209,9 +206,9 @@ func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
 	return validationErrors, nil
 }
 
-func (w *Workflow) validateCalledVarNames() ([]string, error) {
+func (w *Workflow) validateCalledVarNames(d *DotGithub) ([]string, error) {
 	var validationErrors []string
-	varTypes := []string{"env", "var", "secret"}
+	varTypes := []string{"env", "vars", "secrets"}
 	for _, v := range varTypes {
 		re := regexp.MustCompile(fmt.Sprintf("\\${{[ ]*%s\\.([a-zA-Z0-9\\-_]+)[ ]*}}", v))
 		found := re.FindAllSubmatch(w.Raw, -1)
@@ -223,6 +220,14 @@ func (w *Workflow) validateCalledVarNames() ([]string, error) {
 			if !m {
 				validationErrors = append(validationErrors, w.formatError("NW107", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1]))))
 			}
+
+			if v == "var" && d.VarsFile != "" && !d.Vars[string(f[1])] {
+				validationErrors = append(validationErrors, w.formatError("EW254", fmt.Sprintf("Called variable '%s' does not exist in provided list of available vars", string(f[1]))))
+			}
+
+			if v == "secrets" && d.SecretsFile != "" && !d.Secrets[string(f[1])] {
+				validationErrors = append(validationErrors, w.formatError("EW255", fmt.Sprintf("Called secret '%s' does not exist in provided list of available secrets", string(f[1]))))
+			}
 		}
 	}
 
@@ -233,7 +238,6 @@ func (w *Workflow) validateCalledVarNames() ([]string, error) {
 			validationErrors = append(validationErrors, w.formatError("EW201", fmt.Sprintf("Called variable '%s' is invalid", string(f[1]))))
 		}
 	}
-	return validationErrors, nil
 	return validationErrors, nil
 }
 
