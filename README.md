@@ -100,7 +100,7 @@ space.
     % cat ~/secrets-list.txt 
     MY_SECRET_1
     MY_SECRET_2
-    % ./github-actions-validator validate -p /path/to/.github -s ~/cc-secrets-list.txt | grep '^EW25'
+    % ./github-actions-validator validate -p /path/to/.github -s ~/secrets-list.txt | grep '^EW25'
     EW255: workflow my-workflow.yml                              Called secret 'GITHUB_TOKEN' does not exist in provided list of available secrets
 
 
