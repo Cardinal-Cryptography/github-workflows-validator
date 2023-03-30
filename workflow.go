@@ -221,7 +221,7 @@ func (w *Workflow) validateCalledVarNames(d *DotGithub) ([]string, error) {
 				validationErrors = append(validationErrors, w.formatError("NW107", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1]))))
 			}
 
-			if v == "var" && d.VarsFile != "" && !d.Vars[string(f[1])] {
+			if v == "vars" && d.VarsFile != "" && !d.Vars[string(f[1])] {
 				validationErrors = append(validationErrors, w.formatError("EW254", fmt.Sprintf("Called variable '%s' does not exist in provided list of available vars", string(f[1]))))
 			}
 
