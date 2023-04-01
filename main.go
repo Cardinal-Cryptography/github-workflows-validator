@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	cli := gocli.NewCLI("github-actions-validator", "Validates GitHub Actions' .github directory", "Mikolaj Gasior <miko@gen64.net>")
+	cli := gocli.NewCLI("github-actions-validator", "Validates GitHub Actions' .github directory", "Mikolaj Gasior <mikolaj@gasior.dev>")
 	cmdValidate := cli.AddCmd("validate", "Runs the validation on files from a specified directory", validateHandler)
 	cmdValidate.AddFlag("path", "p", "", "Path to .github directory", gocli.TypePathDir|gocli.MustExist|gocli.Required, nil)
 	cmdValidate.AddFlag("vars-file", "z", "", "Check if variable names exist in this file (one per line)", gocli.TypePathFile|gocli.MustExist, nil)
