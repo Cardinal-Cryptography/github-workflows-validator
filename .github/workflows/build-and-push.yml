@@ -5,34 +5,7 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
-  build-and-release-binaries:
-    name: Build binaries for Linux and OSX
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout github-actions-validator source code
-        uses: actions/checkout@v3
-
-      - name: Install golang
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.20'
-
-      - name: Build binaries
-        run: |
-          GOOS=linux GOARCH=amd64 go build -o target/github-actions-validator-${GITHUB_REF_NAME}-linux-amd64
-          GOOS=darwin GOARCH=arm64 go build -o target/github-actions-validator-${GITHUB_REF_NAME}-darwin-arm64
-
-      - name: Create release
-        uses: softprops/action-gh-release@v1
-
-      - name: Upload binaries to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            target/github-actions-validator-${GITHUB_REF_NAME}-linux-amd64
-            target/github-actions-validator-${GITHUB_REF_NAME}-darwin-arm64
-
-  build-push-docker:
+  main:
     name: Build and push Github Actions Validator to ECR
     runs-on: ubuntu-20.04
     steps:
