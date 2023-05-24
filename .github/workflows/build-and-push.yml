@@ -22,10 +22,10 @@ jobs:
           GOOS=darwin GOARCH=arm64 go build -o target/github-actions-validator-${GITHUB_REF_NAME}-darwin-arm64
 
       - name: Create release
-        uses: softprops/actions-gh-release@v1
+        uses: softprops/action-gh-release@v1
 
       - name: Upload binaries to release
-        uses: softprops/actions-gh-release@v1
+        uses: softprops/action-gh-release@v1
         with:
           files: |
             target/github-actions-validator-${GITHUB_REF_NAME}-linux-amd64
