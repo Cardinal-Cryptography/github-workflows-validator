@@ -1,8 +1,9 @@
 name: Build binaries and docker containers and publish them
 
 on:
-  tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+'
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   build-and-release-binaries:
     name: Build binaries for Linux and OSX
