@@ -56,10 +56,16 @@ func (d *DotGithub) DownloadExternalAction(path string) error {
 	if d.ExternalActions[path] != nil {
 		return nil
 	}
-	repoVersion := strings.Split(path, "@")
-	actionURLPrefix := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s", repoVersion[0], repoVersion[1])
 
-	req, err := http.NewRequest("GET", actionURLPrefix+"/action.yml", strings.NewReader(""))
+	repoVersion := strings.Split(path, "@")
+	ownerRepoDir := strings.SplitN(repoVersion[0], "/", 3)
+	directory := ""
+	if len(ownerRepoDir) > 2 {
+		directory = "/"+ownerRepoDir[2]
+	}
+	actionURLPrefix := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", ownerRepoDir[0], ownerRepoDir[1], repoVersion[1])
+
+	req, err := http.NewRequest("GET", actionURLPrefix+directory+"/action.yml", strings.NewReader(""))
 	if err != nil {
 		return err
 	}
@@ -102,6 +108,9 @@ func (d *DotGithub) getActions() {
 	actionsPath := filepath.Join(d.Path, "actions")
 	entries, err := os.ReadDir(actionsPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return
+		}
 		log.Fatal(err)
 	}
 	for _, e := range entries {
