@@ -152,7 +152,7 @@ func (wj *WorkflowJob) IsStepOutputExist(step string, output string, d *DotGithu
 		re = regexp.MustCompile(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`)
 		m = re.MatchString(s.Uses)
 		if m {
-			if d.Actions != nil || d.ExternalActions[s.Uses] != nil {
+			if d.ExternalActions != nil && d.ExternalActions[s.Uses] != nil {
 				for duaOutputName, _ := range d.ExternalActions[s.Uses].Outputs {
 					if duaOutputName == output {
 						return 0
