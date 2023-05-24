@@ -47,7 +47,7 @@ func (ar *ActionRuns) IsStepOutputExist(step string, output string, d *DotGithub
 		m := re.MatchString(s.Uses)
 		if m {
 			usedAction := strings.Replace(s.Uses, "./.github/actions/", "", -1)
-			if d.Actions != nil || d.Actions[usedAction] != nil {
+			if d.Actions != nil && d.Actions[usedAction] != nil {
 				for duaOutputName, _ := range d.Actions[usedAction].Outputs {
 					if duaOutputName == output {
 						return 0
@@ -59,7 +59,7 @@ func (ar *ActionRuns) IsStepOutputExist(step string, output string, d *DotGithub
 		re = regexp.MustCompile(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`)
 		m = re.MatchString(s.Uses)
 		if m {
-			if d.Actions != nil || d.ExternalActions[s.Uses] != nil {
+			if d.ExternalActions != nil && d.ExternalActions[s.Uses] != nil {
 				for duaOutputName, _ := range d.ExternalActions[s.Uses].Outputs {
 					if duaOutputName == output {
 						return 0
