@@ -61,7 +61,7 @@ func (d *DotGithub) DownloadExternalAction(path string) error {
 	ownerRepoDir := strings.SplitN(repoVersion[0], "/", 3)
 	directory := ""
 	if len(ownerRepoDir) > 2 {
-		directory = "/"+ownerRepoDir[2]
+		directory = "/" + ownerRepoDir[2]
 	}
 	actionURLPrefix := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", ownerRepoDir[0], ownerRepoDir[1], repoVersion[1])
 
