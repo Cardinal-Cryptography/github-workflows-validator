@@ -63,4 +63,3 @@ jobs:
         run: |
           docker tag ${{ env.LOCAL_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:${GITHUB_REF_NAME}
           docker push ${{ env.ECR_PUSH_IMAGE }}:${GITHUB_REF_NAME}
-
