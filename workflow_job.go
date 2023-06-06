@@ -53,8 +53,6 @@ func (wj *WorkflowJob) Validate(workflow string, job string, d *DotGithub) ([]st
 		}
 	}
 
-	
-
 	verrs, err := wj.validateEnv(workflow, job)
 	if err != nil {
 		return validationErrors, err
