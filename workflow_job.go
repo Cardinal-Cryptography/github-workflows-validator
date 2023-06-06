@@ -10,7 +10,7 @@ import (
 type WorkflowJob struct {
 	Name   string            `yaml:"name"`
 	Uses   string            `yaml:"uses"`
-	RunsOn string            `yaml:"runs-on"`
+	RunsOn interface{}       `yaml:"runs-on"`
 	Steps  []*ActionStep     `yaml:"steps"`
 	Env    map[string]string `yaml:"env"`
 	Needs  interface{}       `yaml:"needs,omitempty"`
@@ -32,12 +32,28 @@ func (wj *WorkflowJob) Validate(workflow string, job string, d *DotGithub) ([]st
 		validationErrors = append(validationErrors, verr)
 	}
 
-	if wj.Uses == "" && wj.RunsOn == "" {
-		validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW601", "Workflow job name should have either 'uses' or 'runs-on'"))
+	if wj.RunsOn != nil {
+		runsOnStr, ok := wj.RunsOn.(string)
+		if ok {
+			if wj.Uses == "" && runsOnStr == "" {
+				validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW601", "Workflow job name should have either 'uses' or 'runs-on'"))
+			}
+			if strings.Contains(runsOnStr, "latest") {
+				validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW602", "Workflow job should not have 'latest' in 'runs-on'"))
+			}
+		}
+
+		runsOnList, ok := wj.RunsOn.([]string)
+		if ok {
+			for _, runsOn := range runsOnList {
+				if strings.Contains(runsOn, "latest") {
+					validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW602", "Workflow job should not have 'latest' in 'runs-on'"))
+				}
+			}
+		}
 	}
-	if strings.Contains(wj.RunsOn, "latest") {
-		validationErrors = append(validationErrors, wj.formatError(workflow, job, "EW602", "Workflow job should not have 'latest' in 'runs-on'"))
-	}
+
+	
 
 	verrs, err := wj.validateEnv(workflow, job)
 	if err != nil {
