@@ -262,3 +262,54 @@ func (d *DotGithub) Validate() ([]string, error) {
 
 	return validationErrors, nil
 }
+
+func (d *DotGithub) GetAction(n string) *Action {
+	return d.Actions[n]
+}
+
+func (d *DotGithub) GetExternalAction(n string) *Action {
+	return d.ExternalActions[n]
+}
+
+func (d *DotGithub) GetWorkflowJob(action string, job string) *WorkflowJob {
+	if d.Workflows[action] != nil {
+		return d.Workflows[action].Jobs[job]
+	}
+	return nil
+}
+
+func (d *DotGithub) GetWorkflowJobEnv(action string, job string, env string) string {
+	if d.Workflows[action] != nil && d.Workflows[action].Jobs[job] != nil {
+		return d.Workflows[action].Jobs[job].Env[env]
+	}
+	return ""
+}
+
+func (d *DotGithub) GetWorkflowEnv(action string, env string) string {
+	if d.Workflows[action] != nil {
+		return d.Workflows[action].Env[env]
+	}
+	return ""
+}
+
+func (d *DotGithub) IsVarsFileExist() bool {
+	if d.VarsFile != "" {
+		return true
+	}
+	return false
+}
+
+func (d *DotGithub) IsSecretsFileExist() bool {
+	if d.SecretsFile != "" {
+		return true
+	}
+	return false
+}
+
+func (d *DotGithub) IsVarExist(n string) bool {
+	return d.Vars[n]
+}
+
+func (d *DotGithub) IsSecretExist(n string) bool {
+	return d.Secrets[n]
+}

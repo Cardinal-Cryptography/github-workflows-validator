@@ -45,7 +45,7 @@ func (w *Workflow) Init() error {
 	return nil
 }
 
-func (w *Workflow) Validate(d *DotGithub) ([]string, error) {
+func (w *Workflow) Validate(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	verr, err := w.validateFileName()
 	if err != nil {
@@ -165,7 +165,7 @@ func (w *Workflow) validateMissingFields() ([]string, error) {
 	return validationErrors, nil
 }
 
-func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
+func (w *Workflow) validateJobs(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	if len(w.Jobs) == 1 {
 		for jobName, _ := range w.Jobs {
@@ -206,7 +206,7 @@ func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
 	return validationErrors, nil
 }
 
-func (w *Workflow) validateCalledVarNames(d *DotGithub) ([]string, error) {
+func (w *Workflow) validateCalledVarNames(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	varTypes := []string{"env", "vars", "secrets"}
 	for _, v := range varTypes {
@@ -221,11 +221,11 @@ func (w *Workflow) validateCalledVarNames(d *DotGithub) ([]string, error) {
 				validationErrors = append(validationErrors, w.formatError("NW107", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1]))))
 			}
 
-			if v == "vars" && d.VarsFile != "" && !d.Vars[string(f[1])] {
+			if v == "vars" && d.IsVarsFileExist() && !d.IsVarExist(string(f[1])) {
 				validationErrors = append(validationErrors, w.formatError("EW254", fmt.Sprintf("Called variable '%s' does not exist in provided list of available vars", string(f[1]))))
 			}
 
-			if v == "secrets" && d.SecretsFile != "" && !d.Secrets[string(f[1])] {
+			if v == "secrets" && d.IsSecretsFileExist() && !d.IsSecretExist(string(f[1])) {
 				validationErrors = append(validationErrors, w.formatError("EW255", fmt.Sprintf("Called secret '%s' does not exist in provided list of available secrets", string(f[1]))))
 			}
 		}

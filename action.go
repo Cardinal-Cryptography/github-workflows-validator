@@ -38,7 +38,7 @@ func (a *Action) Init(fromRaw bool) error {
 	return nil
 }
 
-func (a *Action) Validate(d *DotGithub) ([]string, error) {
+func (a *Action) Validate(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	verr, err := a.validateDirName()
 	if err != nil {
@@ -257,7 +257,7 @@ func (a *Action) validateCalledStepOutputs() ([]string, error) {
 	return validationErrors, nil
 }
 
-func (a *Action) validateSteps(d *DotGithub) ([]string, error) {
+func (a *Action) validateSteps(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	if a.Runs != nil {
 		verrs, err := a.Runs.Validate(a.DirName, d)
