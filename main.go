@@ -4,6 +4,8 @@ import (
 	"fmt"
 	gocli "github.com/MikolajGasior/go-mod-cli"
 	"os"
+
+	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/dotgithub"
 )
 
 func main() {
@@ -25,7 +27,7 @@ func versionHandler(c *gocli.CLI) int {
 }
 
 func validateHandler(c *gocli.CLI) int {
-	dotGithub := DotGithub{
+	dotGithub := dotgithub.DotGithub{
 		Path:        c.Flag("path"),
 		VarsFile:    c.Flag("vars-file"),
 		SecretsFile: c.Flag("secrets-file"),

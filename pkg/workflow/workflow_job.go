@@ -1,17 +1,19 @@
-package main
+package workflow
 
 import (
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/action"
 )
 
 type WorkflowJob struct {
 	Name   string            `yaml:"name"`
 	Uses   string            `yaml:"uses"`
 	RunsOn interface{}       `yaml:"runs-on"`
-	Steps  []*ActionStep     `yaml:"steps"`
+	Steps  []*action.ActionStep     `yaml:"steps"`
 	Env    map[string]string `yaml:"env"`
 	Needs  interface{}       `yaml:"needs,omitempty"`
 }
@@ -22,15 +24,13 @@ func (wj *WorkflowJob) SetParentType(t string) {
 	}
 }
 
-func (wj *WorkflowJob) Validate(workflow string, job string, d *DotGithub) ([]string, error) {
+func (wj *WorkflowJob) Validate(workflow string, job string, d IDotGithub) ([]string, error) {
 	var validationErrors []string
-	verr, err := wj.validateName(workflow, job, d)
+	verr, err := wj.validateName(workflow, job)
 	if err != nil {
 		return validationErrors, err
 	}
-	if verr != "" {
-		validationErrors = append(validationErrors, verr)
-	}
+	validationErrors = wj.appendErr(validationErrors, verr)
 
 	if wj.RunsOn != nil {
 		runsOnStr, ok := wj.RunsOn.(string)
@@ -57,25 +57,33 @@ func (wj *WorkflowJob) Validate(workflow string, job string, d *DotGithub) ([]st
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = wj.appendErrs(validationErrors, verrs)
 
 	verrs, err = wj.validateSteps(workflow, job, d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = wj.appendErrs(validationErrors, verrs)
 	return validationErrors, nil
 }
 
-func (wj *WorkflowJob) validateName(workflow string, job string, d *DotGithub) (string, error) {
+func (wj *WorkflowJob) appendErr(list []string, err string) []string {
+	if err != "" {
+		list = append(list, err)
+	}
+	return list
+}
+
+func (wj *WorkflowJob) appendErrs(list []string, errs []string) []string {
+	if len(errs) > 0 {
+		for _, err := range errs {
+			list = wj.appendErr(list, err)
+		}
+	}
+	return list
+}
+
+func (wj *WorkflowJob) validateName(workflow string, job string) (string, error) {
 	m, err := regexp.MatchString(`^[a-z0-9][a-z0-9\-]+$`, job)
 	if err != nil {
 		return "", err
@@ -115,7 +123,7 @@ func (wj *WorkflowJob) IsStepExist(id string) bool {
 	return false
 }
 
-func (wj *WorkflowJob) validateSteps(workflow string, job string, d *DotGithub) ([]string, error) {
+func (wj *WorkflowJob) validateSteps(workflow string, job string, d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	if wj.Steps != nil {
 		for i, s := range wj.Steps {
@@ -123,17 +131,13 @@ func (wj *WorkflowJob) validateSteps(workflow string, job string, d *DotGithub) 
 			if err != nil {
 				return validationErrors, err
 			}
-			if len(verrs) > 0 {
-				for _, verr := range verrs {
-					validationErrors = append(validationErrors, verr)
-				}
-			}
+			validationErrors = wj.appendErrs(validationErrors, verrs)
 		}
 	}
 	return validationErrors, nil
 }
 
-func (wj *WorkflowJob) IsStepOutputExist(step string, output string, d *DotGithub) int {
+func (wj *WorkflowJob) IsStepOutputExist(step string, output string, d IDotGithub) int {
 	for _, s := range wj.Steps {
 		if s.Id != step {
 			continue
@@ -153,9 +157,9 @@ func (wj *WorkflowJob) IsStepOutputExist(step string, output string, d *DotGithu
 		re := regexp.MustCompile(`^\.\/\.github\/actions\/[a-z0-9\-]+$`)
 		m := re.MatchString(s.Uses)
 		if m {
-			usedAction := strings.Replace(s.Uses, "./.github/actions/", "", -1)
-			if d.Actions != nil && d.Actions[usedAction] != nil {
-				for duaOutputName, _ := range d.Actions[usedAction].Outputs {
+			action := d.GetAction(strings.Replace(s.Uses, "./.github/actions/", "", -1))
+			if action != nil {
+				for duaOutputName, _ := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}
@@ -166,8 +170,9 @@ func (wj *WorkflowJob) IsStepOutputExist(step string, output string, d *DotGithu
 		re = regexp.MustCompile(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`)
 		m = re.MatchString(s.Uses)
 		if m {
-			if d.ExternalActions != nil && d.ExternalActions[s.Uses] != nil {
-				for duaOutputName, _ := range d.ExternalActions[s.Uses].Outputs {
+			action := d.GetExternalAction(s.Uses)
+			if action != nil {
+				for duaOutputName, _ := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}

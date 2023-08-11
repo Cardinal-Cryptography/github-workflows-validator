@@ -1,4 +1,4 @@
-package main
+package action
 
 import (
 	"regexp"
@@ -26,7 +26,7 @@ func (ar *ActionRuns) IsStepExist(id string) bool {
 	return false
 }
 
-func (ar *ActionRuns) IsStepOutputExist(step string, output string, d *DotGithub) int {
+func (ar *ActionRuns) IsStepOutputExist(step string, output string, d IDotGithub) int {
 	for _, s := range ar.Steps {
 		if s.Id != step {
 			continue
@@ -46,9 +46,9 @@ func (ar *ActionRuns) IsStepOutputExist(step string, output string, d *DotGithub
 		re := regexp.MustCompile(`^\.\/\.github\/actions\/[a-z0-9\-]+$`)
 		m := re.MatchString(s.Uses)
 		if m {
-			usedAction := strings.Replace(s.Uses, "./.github/actions/", "", -1)
-			if d.Actions != nil && d.Actions[usedAction] != nil {
-				for duaOutputName, _ := range d.Actions[usedAction].Outputs {
+			action := d.GetAction(strings.Replace(s.Uses, "./.github/actions/", "", -1))
+			if action != nil {
+				for duaOutputName, _ := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}
@@ -59,8 +59,9 @@ func (ar *ActionRuns) IsStepOutputExist(step string, output string, d *DotGithub
 		re = regexp.MustCompile(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`)
 		m = re.MatchString(s.Uses)
 		if m {
-			if d.ExternalActions != nil && d.ExternalActions[s.Uses] != nil {
-				for duaOutputName, _ := range d.ExternalActions[s.Uses].Outputs {
+			action := d.GetExternalAction(s.Uses)
+			if action != nil {
+				for duaOutputName, _ := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}
@@ -73,7 +74,7 @@ func (ar *ActionRuns) IsStepOutputExist(step string, output string, d *DotGithub
 	return -1
 }
 
-func (ar *ActionRuns) Validate(dirName string, d *DotGithub) ([]string, error) {
+func (ar *ActionRuns) Validate(dirName string, d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	if ar.Steps != nil {
 		for i, s := range ar.Steps {

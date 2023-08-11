@@ -1,4 +1,4 @@
-package main
+package workflow
 
 import (
 	"fmt"
@@ -45,77 +45,67 @@ func (w *Workflow) Init() error {
 	return nil
 }
 
-func (w *Workflow) Validate(d *DotGithub) ([]string, error) {
+func (w *Workflow) Validate(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	verr, err := w.validateFileName()
 	if err != nil {
 		return validationErrors, err
 	}
-	if verr != "" {
-		validationErrors = append(validationErrors, verr)
-	}
+	validationErrors = w.appendErr(validationErrors, verr)
 
 	verrs, err := w.validateEnv()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateMissingFields()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateOn()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateJobs(d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateCalledVarNames(d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateCalledInputs()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	return validationErrors, err
+}
+
+func (w *Workflow) appendErr(list []string, err string) []string {
+	if err != "" {
+		list = append(list, err)
+	}
+	return list
+}
+
+func (w *Workflow) appendErrs(list []string, errs []string) []string {
+	if len(errs) > 0 {
+		for _, err := range errs {
+			list = w.appendErr(list, err)
+		}
+	}
+	return list
 }
 
 func (w *Workflow) formatError(code string, desc string) string {
@@ -165,7 +155,7 @@ func (w *Workflow) validateMissingFields() ([]string, error) {
 	return validationErrors, nil
 }
 
-func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
+func (w *Workflow) validateJobs(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	if len(w.Jobs) == 1 {
 		for jobName, _ := range w.Jobs {
@@ -180,11 +170,7 @@ func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
 		if err != nil {
 			return validationErrors, err
 		}
-		if len(verrs) > 0 {
-			for _, verr := range verrs {
-				validationErrors = append(validationErrors, verr)
-			}
-		}
+		validationErrors = w.appendErrs(validationErrors, verrs)
 		if job.Needs != nil {
 			needsStr, ok := job.Needs.(string)
 			if ok {
@@ -206,7 +192,7 @@ func (w *Workflow) validateJobs(d *DotGithub) ([]string, error) {
 	return validationErrors, nil
 }
 
-func (w *Workflow) validateCalledVarNames(d *DotGithub) ([]string, error) {
+func (w *Workflow) validateCalledVarNames(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	varTypes := []string{"env", "vars", "secrets"}
 	for _, v := range varTypes {
@@ -221,11 +207,11 @@ func (w *Workflow) validateCalledVarNames(d *DotGithub) ([]string, error) {
 				validationErrors = append(validationErrors, w.formatError("NW107", fmt.Sprintf("Called variable name '%s' should contain uppercase alphanumeric characters and underscore only", string(f[1]))))
 			}
 
-			if v == "vars" && d.VarsFile != "" && !d.Vars[string(f[1])] {
+			if v == "vars" && d.IsVarsFileExist() && !d.IsVarExist(string(f[1])) {
 				validationErrors = append(validationErrors, w.formatError("EW254", fmt.Sprintf("Called variable '%s' does not exist in provided list of available vars", string(f[1]))))
 			}
 
-			if v == "secrets" && d.SecretsFile != "" && !d.Secrets[string(f[1])] {
+			if v == "secrets" && d.IsSecretsFileExist() && !d.IsSecretExist(string(f[1])) {
 				validationErrors = append(validationErrors, w.formatError("EW255", fmt.Sprintf("Called secret '%s' does not exist in provided list of available secrets", string(f[1]))))
 			}
 		}
@@ -248,11 +234,7 @@ func (w *Workflow) validateOn() ([]string, error) {
 		if err != nil {
 			return validationErrors, err
 		}
-		if len(verrs) > 0 {
-			for _, verr := range verrs {
-				validationErrors = append(validationErrors, verr)
-			}
-		}
+		validationErrors = w.appendErrs(validationErrors, verrs)
 	}
 	return validationErrors, nil
 }
