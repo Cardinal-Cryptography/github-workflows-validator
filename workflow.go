@@ -51,71 +51,61 @@ func (w *Workflow) Validate(d IDotGithub) ([]string, error) {
 	if err != nil {
 		return validationErrors, err
 	}
-	if verr != "" {
-		validationErrors = append(validationErrors, verr)
-	}
+	validationErrors = w.appendErr(validationErrors, verr)
 
 	verrs, err := w.validateEnv()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateMissingFields()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateOn()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateJobs(d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateCalledVarNames(d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	verrs, err = w.validateCalledInputs()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
 
 	return validationErrors, err
+}
+
+func (w *Workflow) appendErr(list []string, err string) []string {
+	if err != "" {
+		list = append(list, err)
+	}
+	return list
+}
+
+func (w *Workflow) appendErrs(list []string, errs []string) []string {
+	if len(errs) > 0 {
+		for _, err := range errs {
+			list = w.appendErr(list, err)
+		}
+	}
+	return list
 }
 
 func (w *Workflow) formatError(code string, desc string) string {
@@ -180,11 +170,7 @@ func (w *Workflow) validateJobs(d IDotGithub) ([]string, error) {
 		if err != nil {
 			return validationErrors, err
 		}
-		if len(verrs) > 0 {
-			for _, verr := range verrs {
-				validationErrors = append(validationErrors, verr)
-			}
-		}
+		validationErrors = w.appendErrs(validationErrors, verrs)
 		if job.Needs != nil {
 			needsStr, ok := job.Needs.(string)
 			if ok {
@@ -248,11 +234,7 @@ func (w *Workflow) validateOn() ([]string, error) {
 		if err != nil {
 			return validationErrors, err
 		}
-		if len(verrs) > 0 {
-			for _, verr := range verrs {
-				validationErrors = append(validationErrors, verr)
-			}
-		}
+		validationErrors = w.appendErrs(validationErrors, verrs)
 	}
 	return validationErrors, nil
 }

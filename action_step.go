@@ -19,46 +19,48 @@ type ActionStep struct {
 
 func (as *ActionStep) Validate(action string, workflowJob string, name string, d IDotGithub) ([]string, error) {
 	var validationErrors []string
+
 	verrs, err := as.validateUses(action, workflowJob, name, as.Uses, d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = as.appendErrs(validationErrors, verrs)
 
 	verrs, err = as.validateEnv(action, workflowJob, name)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = as.appendErrs(validationErrors, verrs)
 
 	verrs, err = as.validateCalledStepOutputs(action, workflowJob, name, as.Uses, d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = as.appendErrs(validationErrors, verrs)
 
 	verrs, err = as.validateCalledEnv(action, workflowJob, name, as.Uses, d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
+	validationErrors = as.appendErrs(validationErrors, verrs)
+
+	return validationErrors, nil
+}
+
+func (as *ActionStep) appendErr(list []string, err string) []string {
+	if err != "" {
+		list = append(list, err)
+	}
+	return list
+}
+
+func (as *ActionStep) appendErrs(list []string, errs []string) []string {
+	if len(errs) > 0 {
+		for _, err := range errs {
+			list = as.appendErr(list, err)
 		}
 	}
-	return validationErrors, nil
+	return list
 }
 
 func (as *ActionStep) validateUses(action string, workflowJob string, name string, uses string, d IDotGithub) ([]string, error) {
@@ -72,11 +74,7 @@ func (as *ActionStep) validateUses(action string, workflowJob string, name strin
 		if err != nil {
 			return validationErrors, err
 		}
-		if len(verrs) > 0 {
-			for _, verr := range verrs {
-				validationErrors = append(validationErrors, verr)
-			}
-		}
+		validationErrors = as.appendErrs(validationErrors, verrs)
 	} else {
 		m, err := regexp.MatchString(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`, as.Uses)
 		if err != nil {
@@ -93,11 +91,7 @@ func (as *ActionStep) validateUses(action string, workflowJob string, name strin
 			if err != nil {
 				return validationErrors, err
 			}
-			if len(verrs) > 0 {
-				for _, verr := range verrs {
-					validationErrors = append(validationErrors, verr)
-				}
-			}
+			validationErrors = as.appendErrs(validationErrors, verrs)
 		}
 	}
 	return validationErrors, nil

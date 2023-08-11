@@ -28,9 +28,7 @@ func (wj *WorkflowJob) Validate(workflow string, job string, d IDotGithub) ([]st
 	if err != nil {
 		return validationErrors, err
 	}
-	if verr != "" {
-		validationErrors = append(validationErrors, verr)
-	}
+	validationErrors = wj.appendErr(validationErrors, verr)
 
 	if wj.RunsOn != nil {
 		runsOnStr, ok := wj.RunsOn.(string)
@@ -57,22 +55,30 @@ func (wj *WorkflowJob) Validate(workflow string, job string, d IDotGithub) ([]st
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = wj.appendErrs(validationErrors, verrs)
 
 	verrs, err = wj.validateSteps(workflow, job, d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
+	validationErrors = wj.appendErrs(validationErrors, verrs)
+	return validationErrors, nil
+}
+
+func (wj *WorkflowJob) appendErr(list []string, err string) []string {
+	if err != "" {
+		list = append(list, err)
+	}
+	return list
+}
+
+func (wj *WorkflowJob) appendErrs(list []string, errs []string) []string {
+	if len(errs) > 0 {
+		for _, err := range errs {
+			list = wj.appendErr(list, err)
 		}
 	}
-	return validationErrors, nil
+	return list
 }
 
 func (wj *WorkflowJob) validateName(workflow string, job string) (string, error) {
@@ -123,11 +129,7 @@ func (wj *WorkflowJob) validateSteps(workflow string, job string, d IDotGithub) 
 			if err != nil {
 				return validationErrors, err
 			}
-			if len(verrs) > 0 {
-				for _, verr := range verrs {
-					validationErrors = append(validationErrors, verr)
-				}
-			}
+			validationErrors = wj.appendErrs(validationErrors, verrs)
 		}
 	}
 	return validationErrors, nil

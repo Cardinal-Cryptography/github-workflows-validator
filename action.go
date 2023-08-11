@@ -40,93 +40,78 @@ func (a *Action) Init(fromRaw bool) error {
 
 func (a *Action) Validate(d IDotGithub) ([]string, error) {
 	var validationErrors []string
+
 	verr, err := a.validateDirName()
 	if err != nil {
 		return validationErrors, err
 	}
-	if verr != "" {
-		validationErrors = append(validationErrors, verr)
-	}
+	validationErrors = a.appendErr(validationErrors, verr)
 
 	verr, err = a.validateFileName()
 	if err != nil {
 		return validationErrors, err
 	}
-	if verr != "" {
-		validationErrors = append(validationErrors, verr)
-	}
+	validationErrors = a.appendErr(validationErrors, verr)
 
 	verrs, err := a.validateMissingFields()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
 
 	verrs, err = a.validateInputs()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
 
 	verrs, err = a.validateOutputs()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
 
 	verrs, err = a.validateCalledVarNames()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
 
 	verrs, err = a.validateCalledInputs()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
 
 	verrs, err = a.validateCalledStepOutputs()
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
 
 	verrs, err = a.validateSteps(d)
 	if err != nil {
 		return validationErrors, err
 	}
-	if len(verrs) > 0 {
-		for _, verr := range verrs {
-			validationErrors = append(validationErrors, verr)
-		}
-	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
 
 	return validationErrors, err
+}
+
+func (a *Action) appendErr(list []string, err string) []string {
+	if err != "" {
+		list = append(list, err)
+	}
+	return list
+}
+
+func (a *Action) appendErrs(list []string, errs []string) []string {
+	if len(errs) > 0 {
+		for _, err := range errs {
+			list = a.appendErr(list, err)
+		}
+	}
+	return list
 }
 
 func (a *Action) formatError(code string, desc string) string {
@@ -174,11 +159,7 @@ func (a *Action) validateInputs() ([]string, error) {
 			if err != nil {
 				return validationErrors, err
 			}
-			if len(verrs) > 0 {
-				for _, verr := range verrs {
-					validationErrors = append(validationErrors, verr)
-				}
-			}
+			validationErrors = a.appendErrs(validationErrors, verrs)
 		}
 	}
 	return validationErrors, nil
@@ -192,11 +173,7 @@ func (a *Action) validateOutputs() ([]string, error) {
 			if err != nil {
 				return validationErrors, err
 			}
-			if len(verrs) > 0 {
-				for _, verr := range verrs {
-					validationErrors = append(validationErrors, verr)
-				}
-			}
+			validationErrors = a.appendErrs(validationErrors, verrs)
 		}
 	}
 	return validationErrors, nil
@@ -264,11 +241,7 @@ func (a *Action) validateSteps(d IDotGithub) ([]string, error) {
 		if err != nil {
 			return validationErrors, err
 		}
-		if len(verrs) > 0 {
-			for _, verr := range verrs {
-				validationErrors = append(validationErrors, verr)
-			}
-		}
+		validationErrors = a.appendErrs(validationErrors, verrs)
 	}
 	return validationErrors, nil
 }
