@@ -1,4 +1,4 @@
-package main
+package dotgithub
 
 import (
 	"fmt"
@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/action"
+	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/workflow"
 )
 
 type DotGithub struct {
@@ -17,9 +20,9 @@ type DotGithub struct {
 	SecretsFile     string
 	Vars            map[string]bool
 	Secrets         map[string]bool
-	Actions         map[string]*Action
-	ExternalActions map[string]*Action
-	Workflows       map[string]*Workflow
+	Actions         map[string]*action.Action
+	ExternalActions map[string]*action.Action
+	Workflows       map[string]*workflow.Workflow
 }
 
 func (d *DotGithub) InitFiles() error {
@@ -51,7 +54,7 @@ func (d *DotGithub) InitFiles() error {
 
 func (d *DotGithub) DownloadExternalAction(path string) error {
 	if d.ExternalActions == nil {
-		d.ExternalActions = map[string]*Action{}
+		d.ExternalActions = map[string]*action.Action{}
 	}
 	if d.ExternalActions[path] != nil {
 		return nil
@@ -91,7 +94,7 @@ func (d *DotGithub) DownloadExternalAction(path string) error {
 	defer resp.Body.Close()
 	b, _ := ioutil.ReadAll(resp.Body)
 
-	d.ExternalActions[path] = &Action{
+	d.ExternalActions[path] = &action.Action{
 		Path:    path,
 		DirName: "",
 		Raw:     b,
@@ -104,7 +107,7 @@ func (d *DotGithub) DownloadExternalAction(path string) error {
 }
 
 func (d *DotGithub) getActions() {
-	d.Actions = map[string]*Action{}
+	d.Actions = map[string]*action.Action{}
 	actionsPath := filepath.Join(d.Path, "actions")
 	entries, err := os.ReadDir(actionsPath)
 	if err != nil {
@@ -142,7 +145,7 @@ func (d *DotGithub) getActions() {
 				continue
 			}
 		}
-		d.Actions[e.Name()] = &Action{
+		d.Actions[e.Name()] = &action.Action{
 			Path:    actionYMLPath,
 			DirName: e.Name(),
 		}
@@ -150,7 +153,7 @@ func (d *DotGithub) getActions() {
 }
 
 func (d *DotGithub) getWorkflows() {
-	d.Workflows = map[string]*Workflow{}
+	d.Workflows = map[string]*workflow.Workflow{}
 	workflowsPath := filepath.Join(d.Path, "workflows")
 	entries, err := os.ReadDir(workflowsPath)
 	if err != nil {
@@ -173,7 +176,7 @@ func (d *DotGithub) getWorkflows() {
 		if !fileInfo.Mode().IsRegular() {
 			continue
 		}
-		d.Workflows[e.Name()] = &Workflow{
+		d.Workflows[e.Name()] = &workflow.Workflow{
 			Path: entryPath,
 		}
 	}
@@ -263,33 +266,30 @@ func (d *DotGithub) Validate() ([]string, error) {
 	return validationErrors, nil
 }
 
-func (d *DotGithub) GetAction(n string) *Action {
+func (d *DotGithub) GetAction(n string) *action.Action {
 	return d.Actions[n]
 }
 
-func (d *DotGithub) GetExternalAction(n string) *Action {
+func (d *DotGithub) GetExternalAction(n string) *action.Action {
 	return d.ExternalActions[n]
 }
 
-func (d *DotGithub) GetWorkflowJob(action string, job string) *WorkflowJob {
-	if d.Workflows[action] != nil {
-		return d.Workflows[action].Jobs[job]
-	}
-	return nil
-}
-
-func (d *DotGithub) GetWorkflowJobEnv(action string, job string, env string) string {
+func (d *DotGithub) IsWorkflowJobStepOutputExist(action string, job string, step string, output string) bool {
 	if d.Workflows[action] != nil && d.Workflows[action].Jobs[job] != nil {
-		return d.Workflows[action].Jobs[job].Env[env]
+		if d.Workflows[action].Jobs[job].IsStepOutputExist(step, output, d) == 0 {
+			return true
+		}
 	}
-	return ""
+	return false
 }
 
-func (d *DotGithub) GetWorkflowEnv(action string, env string) string {
-	if d.Workflows[action] != nil {
-		return d.Workflows[action].Env[env]
+func (d *DotGithub) IsEnvExistInWorkflowOrItsJob(action string, job string, env string) bool {
+	if d.Workflows[action] != nil && d.Workflows[action].Jobs[job] != nil {
+		if d.Workflows[action].Env[env] != "" || d.Workflows[action].Jobs[job].Env[env] != "" {
+			return true
+		}
 	}
-	return ""
+	return false
 }
 
 func (d *DotGithub) IsVarsFileExist() bool {

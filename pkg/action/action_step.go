@@ -1,4 +1,4 @@
-package main
+package action
 
 import (
 	"fmt"
@@ -227,16 +227,9 @@ func (as *ActionStep) validateCalledStepOutputs(actionName string, workflowJobNa
 	found := re.FindAllSubmatch([]byte(runAndEnvsStr), -1)
 	for _, f := range found {
 		if as.ParentType == "workflow" {
-			workflowJob := d.GetWorkflowJob(actionName, workflowJobName)
-			if workflowJob == nil {
-				validationErrors = append(validationErrors, as.formatErrorForWorkflow(actionName, workflowJobName, step, "EW809", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
+			if !d.IsWorkflowJobStepOutputExist(actionName, workflowJobName, string(f[1]), string(f[2])) {
+				validationErrors = append(validationErrors, as.formatErrorForWorkflow(actionName, workflowJobName, step, "EW811", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]))))
 				continue
-			}
-			found := workflowJob.IsStepOutputExist(string(f[1]), string(f[2]), d)
-			if found == -1 {
-				validationErrors = append(validationErrors, as.formatErrorForWorkflow(actionName, workflowJobName, step, "EW810", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
-			} else if found == -2 {
-				validationErrors = append(validationErrors, as.formatErrorForWorkflow(actionName, workflowJobName, step, "EW811", fmt.Sprintf("Called step with id '%s' output '%s' does not exist", string(f[1]), string(f[2]))))
 			}
 		} else {
 			action := d.GetAction(actionName)
@@ -269,10 +262,7 @@ func (as *ActionStep) validateCalledEnv(action string, workflowJob string, step 
 			if as.Env != nil && as.Env[string(f[1])] != "" {
 				found = true
 			}
-			if !found && d.GetWorkflowJobEnv(action, workflowJob, string(f[1])) != "" {
-				found = true
-			}
-			if !found && d.GetWorkflowEnv(action, string(f[1])) != "" {
+			if !found && d.IsEnvExistInWorkflowOrItsJob(action, workflowJob, string(f[1])) {
 				found = true
 			}
 			if !found {

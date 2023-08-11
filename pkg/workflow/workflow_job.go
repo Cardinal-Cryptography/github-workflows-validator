@@ -1,17 +1,19 @@
-package main
+package workflow
 
 import (
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/action"
 )
 
 type WorkflowJob struct {
 	Name   string            `yaml:"name"`
 	Uses   string            `yaml:"uses"`
 	RunsOn interface{}       `yaml:"runs-on"`
-	Steps  []*ActionStep     `yaml:"steps"`
+	Steps  []*action.ActionStep     `yaml:"steps"`
 	Env    map[string]string `yaml:"env"`
 	Needs  interface{}       `yaml:"needs,omitempty"`
 }

@@ -1,4 +1,4 @@
-package main
+package workflow
 
 type WorkflowOn struct {
 	WorkflowCall     *WorkflowCall     `yaml:"workflow_call"`
