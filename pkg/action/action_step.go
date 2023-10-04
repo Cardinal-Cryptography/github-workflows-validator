@@ -76,7 +76,7 @@ func (as *ActionStep) validateUses(action string, workflowJob string, name strin
 		}
 		validationErrors = as.appendErrs(validationErrors, verrs)
 	} else {
-		m, err := regexp.MatchString(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+@[a-zA-Z0-9\.\-\_]+`, as.Uses)
+		m, err := regexp.MatchString(`[a-zA-Z0-9\-\_]+\/[a-zA-Z0-9\-\_]+(\/[a-zA-Z0-9\-\_]){0,1}@[a-zA-Z0-9\.\-\_]+`, as.Uses)
 		if err != nil {
 			return validationErrors, err
 		}
