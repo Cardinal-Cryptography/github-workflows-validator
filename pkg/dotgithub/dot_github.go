@@ -79,7 +79,7 @@ func (d *DotGithub) DownloadExternalAction(path string) error {
 		return err
 	}
 	if resp.StatusCode != 200 {
-		req, err = http.NewRequest("GET", actionURLPrefix+"/action.yaml", strings.NewReader(""))
+		req, err = http.NewRequest("GET", actionURLPrefix+directory+"/action.yaml", strings.NewReader(""))
 		if err != nil {
 			return err
 		}
