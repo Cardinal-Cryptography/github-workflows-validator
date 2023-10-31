@@ -1,5 +1,5 @@
-github.com/MikolajGasior/go-mod-cli v1.0.0 h1:YNP1TnQgKGFw9KF1Zgf+2PLPr445kzjxHPl1rZgIRak=
-github.com/MikolajGasior/go-mod-cli v1.0.0/go.mod h1:M4KyBYxD8cWYLuB62FTs/Ng4pkyqcuOjnQlAYWidyic=
+github.com/bitsnops/go-broccli v1.1.0 h1:aSIbHayHi7m8bD9pbh40/pNa9HxUvMFGwMmPf9rKfxA=
+github.com/bitsnops/go-broccli v1.1.0/go.mod h1:rGxWdzSbu6/BMH7lkWBNPGSixhlmSW1kK7K+a1RJKwo=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.4.0 h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=

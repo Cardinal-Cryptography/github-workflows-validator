@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	gocli "github.com/MikolajGasior/go-mod-cli"
+	gocli "github.com/bitsnops/go-broccli"
 	"os"
 
 	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/dotgithub"

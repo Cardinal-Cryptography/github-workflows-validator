@@ -37,6 +37,7 @@ issue occurs in a workflow.
 | Code | Description |
 |------|-------------|
 | WW101 | Called env var '%s' not found in global, job or step 'env' block - check it |
+| WW201 | Called var '%s' may not need to be in double quotes |
 
 ### Naming convention warnings
 

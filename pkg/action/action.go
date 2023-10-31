@@ -89,6 +89,12 @@ func (a *Action) Validate(d IDotGithub) ([]string, error) {
 	}
 	validationErrors = a.appendErrs(validationErrors, verrs)
 
+	verrs, err = a.validateCalledVarsNotInDoubleQuotes()
+	if err != nil {
+		return validationErrors, err
+	}
+	validationErrors = a.appendErrs(validationErrors, verrs)
+
 	verrs, err = a.validateSteps(d)
 	if err != nil {
 		return validationErrors, err
@@ -230,6 +236,16 @@ func (a *Action) validateCalledStepOutputs() ([]string, error) {
 				validationErrors = append(validationErrors, a.formatError("EA204", fmt.Sprintf("Called step with id '%s' does not exist", string(f[1]))))
 			}
 		}
+	}
+	return validationErrors, nil
+}
+
+func (a *Action) validateCalledVarsNotInDoubleQuotes() ([]string, error) {
+	var validationErrors []string
+	re := regexp.MustCompile(`\"\${{[ ]*([a-zA-Z0-9\\-_.]+)[ ]*}}\"`)
+	found := re.FindAllSubmatch(a.Raw, -1)
+	for _, f := range found {
+		validationErrors = append(validationErrors, a.formatError("WW201", fmt.Sprintf("Called variable '%s' may not need to be in double quotes", string(f[1]))))
 	}
 	return validationErrors, nil
 }
