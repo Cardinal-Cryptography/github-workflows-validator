@@ -83,6 +83,12 @@ func (w *Workflow) Validate(d IDotGithub) ([]string, error) {
 	}
 	validationErrors = w.appendErrs(validationErrors, verrs)
 
+	verrs, err = w.validateCalledVarsNotInDoubleQuotes()
+	if err != nil {
+		return validationErrors, err
+	}
+	validationErrors = w.appendErrs(validationErrors, verrs)
+
 	verrs, err = w.validateCalledInputs()
 	if err != nil {
 		return validationErrors, err
@@ -256,6 +262,17 @@ func (w *Workflow) validateCalledInputs() ([]string, error) {
 		if notInInputs {
 			validationErrors = append(validationErrors, w.formatError("EW202", fmt.Sprintf("Called input '%s' does not exist", string(f[1]))))
 		}
+	}
+	return validationErrors, nil
+}
+
+func (w *Workflow) validateCalledVarsNotInDoubleQuotes() ([]string, error) {
+	
+	var validationErrors []string
+	re := regexp.MustCompile(`\"\${{[ ]*([a-zA-Z0-9\\-_.]+)[ ]*}}\"`)
+	found := re.FindAllSubmatch(w.Raw, -1)
+	for _, f := range found {
+		validationErrors = append(validationErrors, w.formatError("WW201", fmt.Sprintf("Called variable '%s' may not need to be in double quotes", string(f[1]))))
 	}
 	return validationErrors, nil
 }
