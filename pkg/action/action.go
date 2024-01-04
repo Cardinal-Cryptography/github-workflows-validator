@@ -3,15 +3,17 @@ package action
 import (
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
+	"strings"
+	"net/http"
 )
 
 type Action struct {
-	Path        string
-	Raw         []byte
-	DirName     string
+	path        string
+	raw         []byte
+	dirName     string
 	Name        string                   `yaml:"name"`
 	Description string                   `yaml:"description"`
 	Inputs      map[string]*ActionInput  `yaml:"inputs"`
@@ -19,24 +21,88 @@ type Action struct {
 	Runs        *ActionRuns              `yaml:"runs"`
 }
 
-func (a *Action) Init(fromRaw bool) error {
-	if !fromRaw {
-		fmt.Fprintf(os.Stdout, "**** Reading %s ...\n", a.Path)
-		b, err := ioutil.ReadFile(a.Path)
-		if err != nil {
-			return fmt.Errorf("Cannot read file %s: %w", a.Path, err)
-		}
-		a.Raw = b
-	}
-	err := yaml.Unmarshal(a.Raw, &a)
+// NewFromFile returns pointer to Action instance and parses out specified path to YAML file.
+func NewFromFile(dirName string, path string) (*Action, error) {
+	fmt.Fprintf(os.Stdout, "**** Reading %s ...\n", s.path)
+	b, err := ioutil.ReadFile(s.path)
 	if err != nil {
-		return fmt.Errorf("Cannot unmarshal file %s: %w", a.Path, err)
+		return nil, fmt.Errorf("Cannot read file %s: %w", s.path, err)
 	}
-	if a.Runs != nil {
-		a.Runs.SetParentType("action")
+
+	s, err := NewFromBytes(dirName, b)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot create from file %s: %w", s.path, err)
 	}
-	return nil
+	s.path = path
+
+	return s, nil
 }
+
+// NewFromBytes returns pointer to Action instance and parses out YAML data specified as bytes.
+func NewFromBytes(dirName string, b []byte) (*Action, error) {
+	s := &Action{
+		raw: b,
+		dirName: dirName,
+	}
+
+	err := yaml.Unmarshal(s.raw, a)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot unmarshal action data: %w", err)
+	}
+	if s.Runs != nil {
+		s.Runs.SetParentType("action")
+	}
+
+	return s, nil
+}
+
+// NewFromExternal returns pointer to Action instance from a specified external path, eg. organization/repo@v3.  YAML
+// file of such action is downloaded and unmarshalled into struct.
+func NewFromExternal(path string) (*Action, error) {
+	repoVersion := strings.Split(path, "@")
+	ownerRepoDir := strings.SplitN(repoVersion[0], "/", 3)
+	directory := ""
+	if len(ownerRepoDir) > 2 {
+		directory = "/" + ownerRepoDir[2]
+	}
+	actionURLPrefix := fmt.Sprintf(
+		"https://raw.githubusercontent.com/%s/%s/%s", ownerRepoDir[0], ownerRepoDir[1], repoVersion[1])
+
+	req, err := http.NewRequest("GET", actionURLPrefix+directory+"/action.yml", strings.NewReader(""))
+	if err != nil {
+		return err
+	}
+	c := &http.Client{}
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		req, err = http.NewRequest("GET", actionURLPrefix+directory+"/action.yaml", strings.NewReader(""))
+		if err != nil {
+			return err
+		}
+		resp, err = c.Do(req)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != 200 {
+			return nil
+		}
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+
+	s, err := NewFromBytes(dirName, b)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot create from file %s: %w", s.path, err)
+	}
+	s.path = path
+
+	return s, nil
+}
+
 
 func (a *Action) Validate(d IDotGithub) ([]string, error) {
 	var validationErrors []string
