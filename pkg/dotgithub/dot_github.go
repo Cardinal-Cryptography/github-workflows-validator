@@ -14,100 +14,56 @@ import (
 	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/workflow"
 )
 
+// DotGitHub relates to .github directory contents, hence, it consists of actions and workflows.
 type DotGithub struct {
-	Path            string
+	path            string
+	actions         map[string]*action.Action
+	externalActions map[string]*action.Action
+	workflows       map[string]*workflow.Workflow
+
 	VarsFile        string
 	SecretsFile     string
 	Vars            map[string]bool
 	Secrets         map[string]bool
-	Actions         map[string]*action.Action
-	ExternalActions map[string]*action.Action
-	Workflows       map[string]*workflow.Workflow
+	
 }
 
-func (d *DotGithub) InitFiles() error {
-	if d.Path == "" {
-		return nil
+// NewFromPath return pointer to new DotGitHub instance with specified path, which is scanned for workflow and action 
+// YAML files.  In case of any problem, log.Fatal is called.
+func NewFromPath(path string) *DotGitHub {
+	s := &DotGithub{
+		path:        path,
+		actions:     map[string]*action.Action{},
+		externalActions: map[string]*action.Action{},
+		workflows: map[string]*workflow.Workflow{},
 	}
 
-	d.getActions()
-	d.getWorkflows()
+	s.getActions()
+	s.getWorkflows()
+	s.getVars()
+	s.getSecrets()
 
-	for _, a := range d.Actions {
-		err := a.Init(false)
-		if err != nil {
-			return err
-		}
-	}
-	for _, w := range d.Workflows {
-		err := w.Init()
-		if err != nil {
-			return err
-		}
-	}
-
-	d.getVars()
-	d.getSecrets()
-
-	return nil
+	return s
 }
 
+// DownloadExternalAction downloads an external action, specified by a path like organization/repo@v3, gets its YAML
+// and parses it out and caches in the DotGitHub instance.
 func (d *DotGithub) DownloadExternalAction(path string) error {
-	if d.ExternalActions == nil {
-		d.ExternalActions = map[string]*action.Action{}
-	}
 	if d.ExternalActions[path] != nil {
 		return nil
 	}
 
-	repoVersion := strings.Split(path, "@")
-	ownerRepoDir := strings.SplitN(repoVersion[0], "/", 3)
-	directory := ""
-	if len(ownerRepoDir) > 2 {
-		directory = "/" + ownerRepoDir[2]
-	}
-	actionURLPrefix := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", ownerRepoDir[0], ownerRepoDir[1], repoVersion[1])
-
-	req, err := http.NewRequest("GET", actionURLPrefix+directory+"/action.yml", strings.NewReader(""))
+	newAction, err := action.NewFromExternal(path)
 	if err != nil {
 		return err
 	}
-	c := &http.Client{}
-	resp, err := c.Do(req)
-
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != 200 {
-		req, err = http.NewRequest("GET", actionURLPrefix+directory+"/action.yaml", strings.NewReader(""))
-		if err != nil {
-			return err
-		}
-		resp, err = c.Do(req)
-		if err != nil {
-			return err
-		}
-		if resp.StatusCode != 200 {
-			return nil
-		}
-	}
-	defer resp.Body.Close()
-	b, _ := ioutil.ReadAll(resp.Body)
-
-	d.ExternalActions[path] = &action.Action{
-		Path:    path,
-		DirName: "",
-		Raw:     b,
-	}
-	err = d.ExternalActions[path].Init(true)
-	if err != nil {
-		return err
-	}
+	d.ExternalActions[path] = newAction
 	return nil
 }
 
+// getActions scans sub-directories in "actions" directory and parses out any of them containing either action.yml or
+// action.yaml.
 func (d *DotGithub) getActions() {
-	d.Actions = map[string]*action.Action{}
 	actionsPath := filepath.Join(d.Path, "actions")
 	entries, err := os.ReadDir(actionsPath)
 	if err != nil {
@@ -145,15 +101,17 @@ func (d *DotGithub) getActions() {
 				continue
 			}
 		}
-		d.Actions[e.Name()] = &action.Action{
-			Path:    actionYMLPath,
-			DirName: e.Name(),
+
+		newAction, err := action.NewFromFile(e.Name(), actionYMLPath)
+		if err != nil {
+			log.Fatal(err)
 		}
+		d.Actions[e.Name()] = newAction
 	}
 }
 
+// getWorkflows scans "workflows" directory and parses out any .yml and .yaml files
 func (d *DotGithub) getWorkflows() {
-	d.Workflows = map[string]*workflow.Workflow{}
 	workflowsPath := filepath.Join(d.Path, "workflows")
 	entries, err := os.ReadDir(workflowsPath)
 	if err != nil {
@@ -176,11 +134,19 @@ func (d *DotGithub) getWorkflows() {
 		if !fileInfo.Mode().IsRegular() {
 			continue
 		}
-		d.Workflows[e.Name()] = &workflow.Workflow{
-			Path: entryPath,
+
+		newWorkflow, err := workflow.NewFromFile(e.Name(), entryPath)
+		if err != nil {
+			log.Fatal(err)
 		}
+		d.Workflows[e.Name()] = newWorkflow
 	}
 }
+
+
+
+
+
 
 func (d *DotGithub) getVars() {
 	d.Vars = make(map[string]bool)
