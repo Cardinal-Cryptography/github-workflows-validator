@@ -195,7 +195,7 @@ func (as *ActionStep) validateUsesExternalAction(actionName string, workflowJobN
 func (as *ActionStep) validateEnv(action string, workflowJob string, step string) ([]string, error) {
 	var validationErrors []string
 	if as.Env != nil {
-		for envName, _ := range as.Env {
+		for envName := range as.Env {
 			m, err := regexp.MatchString(`^[A-Z][A-Z0-9_]+$`, envName)
 			if err != nil {
 				return validationErrors, err

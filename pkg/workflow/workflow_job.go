@@ -10,12 +10,12 @@ import (
 )
 
 type WorkflowJob struct {
-	Name   string            `yaml:"name"`
-	Uses   string            `yaml:"uses"`
-	RunsOn interface{}       `yaml:"runs-on"`
-	Steps  []*action.ActionStep     `yaml:"steps"`
-	Env    map[string]string `yaml:"env"`
-	Needs  interface{}       `yaml:"needs,omitempty"`
+	Name   string               `yaml:"name"`
+	Uses   string               `yaml:"uses"`
+	RunsOn interface{}          `yaml:"runs-on"`
+	Steps  []*action.ActionStep `yaml:"steps"`
+	Env    map[string]string    `yaml:"env"`
+	Needs  interface{}          `yaml:"needs,omitempty"`
 }
 
 func (wj *WorkflowJob) SetParentType(t string) {
@@ -97,7 +97,7 @@ func (wj *WorkflowJob) validateName(workflow string, job string) (string, error)
 func (wj *WorkflowJob) validateEnv(workflow string, job string) ([]string, error) {
 	var validationErrors []string
 	if wj.Env != nil {
-		for envName, _ := range wj.Env {
+		for envName := range wj.Env {
 			m, err := regexp.MatchString(`^[A-Z][A-Z0-9_]+$`, envName)
 			if err != nil {
 				return validationErrors, err
@@ -159,7 +159,7 @@ func (wj *WorkflowJob) IsStepOutputExist(step string, output string, d IDotGithu
 		if m {
 			action := d.GetAction(strings.Replace(s.Uses, "./.github/actions/", "", -1))
 			if action != nil {
-				for duaOutputName, _ := range action.Outputs {
+				for duaOutputName := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}
@@ -172,7 +172,7 @@ func (wj *WorkflowJob) IsStepOutputExist(step string, output string, d IDotGithu
 		if m {
 			action := d.GetExternalAction(s.Uses)
 			if action != nil {
-				for duaOutputName, _ := range action.Outputs {
+				for duaOutputName := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}

@@ -48,7 +48,7 @@ func (ar *ActionRuns) IsStepOutputExist(step string, output string, d IDotGithub
 		if m {
 			action := d.GetAction(strings.Replace(s.Uses, "./.github/actions/", "", -1))
 			if action != nil {
-				for duaOutputName, _ := range action.Outputs {
+				for duaOutputName := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}
@@ -61,7 +61,7 @@ func (ar *ActionRuns) IsStepOutputExist(step string, output string, d IDotGithub
 		if m {
 			action := d.GetExternalAction(s.Uses)
 			if action != nil {
-				for duaOutputName, _ := range action.Outputs {
+				for duaOutputName := range action.Outputs {
 					if duaOutputName == output {
 						return 0
 					}

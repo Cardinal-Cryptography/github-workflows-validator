@@ -140,7 +140,7 @@ func (w *Workflow) validateFileName() (string, error) {
 func (w *Workflow) validateEnv() ([]string, error) {
 	var validationErrors []string
 	if w.Env != nil {
-		for envName, _ := range w.Env {
+		for envName := range w.Env {
 			m, err := regexp.MatchString(`^[A-Z][A-Z0-9_]+$`, envName)
 			if err != nil {
 				return validationErrors, err
@@ -164,7 +164,7 @@ func (w *Workflow) validateMissingFields() ([]string, error) {
 func (w *Workflow) validateJobs(d IDotGithub) ([]string, error) {
 	var validationErrors []string
 	if len(w.Jobs) == 1 {
-		for jobName, _ := range w.Jobs {
+		for jobName := range w.Jobs {
 			if jobName != "main" {
 				validationErrors = append(validationErrors, w.formatError("NW106", "When workflow has only one job, it should be named 'main'"))
 			}
@@ -267,7 +267,7 @@ func (w *Workflow) validateCalledInputs() ([]string, error) {
 }
 
 func (w *Workflow) validateCalledVarsNotInDoubleQuotes() ([]string, error) {
-	
+
 	var validationErrors []string
 	re := regexp.MustCompile(`\"\${{[ ]*([a-zA-Z0-9\\-_.]+)[ ]*}}\"`)
 	found := re.FindAllSubmatch(w.Raw, -1)

@@ -1,4 +1,7 @@
 # github-actions-validator
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/Cardinal-Cryptography/github-actions-validator.svg)](https://pkg.go.dev/github.com/Cardinal-Cryptography/github-actions-validator) [![Go Report Card](https://goreportcard.com/badge/github.com/Cardinal-Cryptography/github-actions-validator)](https://goreportcard.com/report/github.com/Cardinal-Cryptography/github-actions-validator) ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/Cardinal-Cryptography/github-actions-validator?sort=semver)
+
 Quick tool to validate workflows and actions in .github directory
 
 ## Checks
