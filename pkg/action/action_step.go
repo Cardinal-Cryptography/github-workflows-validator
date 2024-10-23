@@ -99,7 +99,7 @@ func (as *ActionStep) validateUses(action string, workflowJob string, name strin
 
 func (as *ActionStep) validateUsesLocalAction(actionName string, workflowJobName string, step string, uses string, d IDotGithub) ([]string, error) {
 	var validationErrors []string
-	m, err := regexp.MatchString(`^\.\/\.github\/actions\/[a-z0-9\-]+$`, uses)
+	m, err := regexp.MatchString(`^\.\/\.github\/actions\/([a-z0-9\-]+|[a-z0-9\-]+\/[a-z0-9\-]+)$`, uses)
 	if err != nil {
 		return validationErrors, err
 	}

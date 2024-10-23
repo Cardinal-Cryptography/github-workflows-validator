@@ -125,7 +125,7 @@ func (a *Action) formatError(code string, desc string) string {
 }
 
 func (a *Action) validateDirName() (string, error) {
-	m, err := regexp.MatchString(`^[a-z0-9][a-z0-9\-]+$`, a.DirName)
+	m, err := regexp.MatchString(`^([a-z0-9][a-z0-9\-]+|[a-z0-9][a-z0-9\-]+/[a-z0-9][a-z0-9\-]+)$`, a.DirName)
 	if err != nil {
 		return "", err
 	}
