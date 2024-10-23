@@ -116,14 +116,31 @@ func (d *DotGithub) getActions() {
 		}
 		log.Fatal(err)
 	}
+
+	d.getActionsFromEntries(actionsPath, entries, "")
+}
+
+func (d *DotGithub) getActionsFromEntries(actionsPath string, entries []os.DirEntry, parentDir string) {
 	for _, e := range entries {
 		entryPath := filepath.Join(actionsPath, e.Name())
+		if parentDir != "" {
+			entryPath = filepath.Join(actionsPath, parentDir, e.Name())
+		}
+
 		fileInfo, err := os.Stat(entryPath)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if !fileInfo.IsDir() {
 			continue
+		}
+
+		if parentDir == "" {
+			entries2, err2 := os.ReadDir(entryPath)
+			if err2 != nil {
+				log.Fatal(err)
+			}
+			d.getActionsFromEntries(actionsPath, entries2, e.Name())
 		}
 
 		actionYMLPath := filepath.Join(entryPath, "action.yml")
@@ -145,9 +162,13 @@ func (d *DotGithub) getActions() {
 				continue
 			}
 		}
-		d.Actions[e.Name()] = &action.Action{
+		actionName := e.Name()
+		if parentDir != "" {
+			actionName = parentDir + "/" + e.Name()
+		}
+		d.Actions[actionName] = &action.Action{
 			Path:    actionYMLPath,
-			DirName: e.Name(),
+			DirName: actionName,
 		}
 	}
 }
