@@ -1,5 +1,5 @@
-github.com/mikolajgs/broccli v2.0.0+incompatible h1:zpLdjMIA9QrUtcXQqjFi3WCY3P8n+/45VHRAc2bfZ4c=
-github.com/mikolajgs/broccli v2.0.0+incompatible/go.mod h1:IOqvFr2wSjX/7otXFff5+jOdyWVXi5OsKEJ5viXk/vg=
+github.com/go-phings/broccli v2.0.0+incompatible h1:u0+b8He3ZJh8sn8C3Xn3tg5dvL9xZPJZe5JXnogq+mc=
+github.com/go-phings/broccli v2.0.0+incompatible/go.mod h1:P/IIXOofkt4Eevq0//bUVmUVmMdLnDh3MGPJC7wuM0w=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.4.0 h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=

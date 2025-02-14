@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/mikolajgs/broccli"
+	"github.com/go-phings/broccli"
 	"os"
 
 	"github.com/Cardinal-Cryptography/github-actions-validator/pkg/dotgithub"
